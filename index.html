@@ -1,0 +1,1512 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulateur Renewal — Joy</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    body { background: #EEEEF5; }
+    input[type=range] { -webkit-appearance: none; height: 5px; border-radius: 3px; outline: none; }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+      background: #6366F1; cursor: pointer; border: 2px solid white;
+      box-shadow: 0 1px 4px rgba(99,102,241,.35);
+    }
+    select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+    .toggle-track { width: 36px; height: 20px; border-radius: 10px; transition: background .2s; cursor: pointer; }
+    .toggle-thumb { width: 16px; height: 16px; border-radius: 50%; background: white; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .2s; margin: 2px; }
+    ::-webkit-scrollbar { height: 4px; width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 2px; }
+    @keyframes slideFromRight { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes slideFromLeft  { from { transform: translateX(-40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .page-fwd  { animation: slideFromRight 0.28s cubic-bezier(0.4,0,0.2,1) both; }
+    .page-back { animation: slideFromLeft  0.28s cubic-bezier(0.4,0,0.2,1) both; }
+  </style>
+</head>
+<body class="min-h-screen">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useMemo, useEffect } = React;
+
+    // ─── Palette ──────────────────────────────────────────────────────────────
+    const C = {
+      purple: '#6366F1', purpleLight: '#EEF2FF', purpleMid: '#C7D2FE',
+      coral: '#F07A5A', coralLight: '#FFF1EE', coralMid: '#FECDC4',
+      green: '#10B981', greenLight: '#ECFDF5',
+      orange: '#F59E0B', orangeLight: '#FFFBEB',
+      red: '#EF4444', redLight: '#FEF2F2',
+      border: '#E4E4F0', bg: '#EEEEF5', card: '#FFFFFF',
+      text: '#111827', muted: '#6B7280', label: '#9CA3AF',
+    };
+
+    // ─── Référentiel ──────────────────────────────────────────────────────────
+    const OFFER_KEYS  = ['joy-only', 'basic', 'advanced', 'expert', 'e1', 'e2', 'e3'];
+    const OFFER_NAMES = { 'joy-only': 'Joy Only', basic: 'Basic', advanced: 'Advanced', expert: 'Expert', e1: 'Enterprise 1', e2: 'Enterprise 2', e3: 'Enterprise 3' };
+
+    const PRICING = {
+      A: {
+        upfront:  { 'joy-only': 1490, basic: 2290, advanced: 3990, expert: 6990, e1: 10000, e2: 15000, e3: 20000 },
+        facilite: { 'joy-only': 1490, basic: 2750, advanced: 4750, expert: 8039, e1: 11500, e2: 17250, e3: 23000 },
+      },
+      B: {
+        upfront:  { 'joy-only': 990, basic: 1490, advanced: 2290, expert: 3990, e1: 6990, e2: 10000, e3: 15000 },
+        facilite: { 'joy-only': 990, basic: 1790, advanced: 2750, expert: 4750, e1: 8039, e2: 11500, e3: 17250 },
+      },
+    };
+
+    const BANDS = [
+      { key: 'red',   emoji: '🔴', label: 'Faible',   sub: '< 100%'   },
+      { key: 'green', emoji: '🟢', label: 'Correcte', sub: '100–200%' },
+      { key: 'blue',  emoji: '🔵', label: 'Forte',    sub: '> 200%'   },
+    ];
+    const BAND_META = {
+      red:   { label: 'Faible pageviews search (< 100%)',     pill: 'orange', emoji: '🔴' },
+      green: { label: 'Pageviews search correcte (100–200%)', pill: 'green',  emoji: '🟢' },
+      blue:  { label: 'Forte pageviews search (> 200%)',      pill: 'blue',   emoji: '🔵' },
+    };
+
+    // ─── Bénéfices par offre (Mode Démo) ─────────────────────────────────────
+    const OFFER_BENEFITS = {
+      'joy-only': {
+        tagline: 'L\'essentiel pour démarrer',
+        pitch: 'Les outils de base pour gérer votre activité événementielle.',
+        target: 'Démarrage activité événementielle',
+        features: [
+          { icon: '📋', title: 'Réservation en ligne', desc: 'Widget de réservation personnalisable avec conditions de resa' },
+          { icon: '📱', title: 'Application mobile', desc: 'Centralisez toutes vos demandes avec calendrier et messagerie' },
+        ],
+      },
+      basic: {
+        tagline: 'Structurez votre activité événementielle',
+        pitch: 'Transformez votre traffic existant en demandes de réservations concrètes.',
+        target: '~3 groupes supplémentaires/mois',
+        features: [
+          { icon: '🏪', title: 'Vitrine événementielle', desc: 'Meilleure mise en valeur de votre activité pour convertir votre traffic existant' },
+          { icon: '📋', title: 'Réservation complète', desc: 'Widget personnalisable avec conditions de resa pour transformer votre traffic en clients' },
+          { icon: '📱', title: 'Application mobile', desc: 'Centralisez toutes les demandes avec calendrier et messagerie intégrée' },
+          { icon: '💳', title: 'Paiement sécurisé', desc: 'Paiement et caution en ligne via Stripe pour sécuriser chaque événement' },
+          { icon: '📄', title: 'Devis & Factures', desc: 'Éditeur dématérialisé pour professionaliser votre gestion B2B' },
+          { icon: '🌍', title: 'Référencement Privateaser', desc: 'Présence sur le site n°1 en Europe pour les réservations de groupes' },
+        ],
+      },
+      advanced: {
+        tagline: 'Le meilleur rapport résultats / prix',
+        pitch: 'Convertissez mieux votre traffic existant ET attirez de nouveaux clients qualifiés.',
+        target: '~5 groupes supplémentaires/mois',
+        includes: 'Toutes les fonctionnalités Basic',
+        features: [
+          { icon: '👁️', title: 'Visibilité Boostée', desc: 'Jusqu\'à 400 visiteurs ciblés/an — priorité dans les résultats de recherche' },
+          { icon: '🤖', title: 'Assistant Virtuel IA', desc: 'Répond et qualifie vos appels même quand vous êtes fermé' },
+          { icon: '🗄️', title: 'CRM Complet', desc: 'Accès complet à votre base de données clients, exportable, pour fidéliser' },
+          { icon: '📊', title: 'Rapports d\'activité', desc: 'Analysez vos performances et optimisez votre taux de conversion' },
+        ],
+      },
+      expert: {
+        tagline: 'Maximisez votre taux de remplissage',
+        pitch: 'Convertissez mieux, attirez plus, et accédez aux organisateurs d\'événements entreprise.',
+        target: '~10 groupes supplémentaires/mois',
+        includes: 'Toutes les fonctionnalités Advanced',
+        features: [
+          { icon: '🚀', title: 'Visibilité Maximale', desc: 'Jusqu\'à 800 visiteurs qualifiés/an — prioritaire sur Advanced et Basic' },
+          { icon: '🏢', title: 'Clientèle entreprise', desc: 'Page dédiée séminaires + partenaires B2B (Naboo, Snapevent...) + publicité ciblée' },
+          { icon: '📸', title: '2 Shootings Photos Pro', desc: 'Ambiance festive & Setup pro pour sublimer votre image' },
+          { icon: '🎯', title: 'Conseils stratégiques', desc: 'Accompagnement personnalisé pour optimiser votre taux de transformation' },
+        ],
+      },
+      e1: {
+        tagline: 'La solution sur-mesure',
+        pitch: 'Pour les établissements avec des besoins spécifiques et un fort potentiel.',
+        target: 'Besoins spécifiques sur mesure',
+        includes: 'Toutes les fonctionnalités Expert',
+        features: [
+          { icon: '📡', title: 'Visibilité sur mesure', desc: 'Adaptée à vos enjeux spécifiques sur Privateaser' },
+          { icon: '🏗️', title: 'Retouche IA', desc: 'Aménagement virtuel de vos espaces pour mieux marketer votre offre' },
+          { icon: '♾️', title: 'Volume illimité', desc: 'Gérez un volume d\'affaires illimité sans contrainte de plafond' },
+        ],
+      },
+      e2: { tagline: 'La solution sur-mesure', pitch: 'Pour les établissements avec des besoins spécifiques et un fort potentiel.', target: 'Besoins spécifiques sur mesure', includes: 'Toutes les fonctionnalités Expert', features: [{ icon: '📡', title: 'Visibilité sur mesure', desc: 'Adaptée à vos enjeux spécifiques' }, { icon: '🏗️', title: 'Retouche IA', desc: 'Aménagement virtuel de vos espaces' }, { icon: '♾️', title: 'Volume illimité', desc: 'Sans contrainte de plafond' }] },
+      e3: { tagline: 'La solution sur-mesure', pitch: 'Pour les établissements avec des besoins spécifiques et un fort potentiel.', target: 'Besoins spécifiques sur mesure', includes: 'Toutes les fonctionnalités Expert', features: [{ icon: '📡', title: 'Visibilité sur mesure', desc: 'Adaptée à vos enjeux spécifiques' }, { icon: '🏗️', title: 'Retouche IA', desc: 'Aménagement virtuel de vos espaces' }, { icon: '♾️', title: 'Volume illimité', desc: 'Sans contrainte de plafond' }] },
+    };
+
+    const ENGAGEMENT_OPTIONS = [
+      { value: 'annual',  label: 'Annual'  },
+      { value: 'monthly', label: 'Monthly' },
+    ];
+
+    // ─── Algo ─────────────────────────────────────────────────────────────────
+    function offerAt(current, dist) {
+      const idx = OFFER_KEYS.indexOf(current);
+      if (idx < 0) return null;
+      const next = idx + dist;
+      if (next < 0 || next >= OFFER_KEYS.length) return null;
+      return OFFER_KEYS[next];
+    }
+
+    function computeScenarios(hs, band, currentOffer) {
+      const raw = [];
+      if (hs <= 70) {
+        const rules = { ok: 30, validate: 60 };
+        if (band === 'red') {
+          raw.push({ offer: offerAt(currentOffer, -1), label: 'Offre inférieure',           rules });
+          raw.push({ offer: offerAt(currentOffer, -2), label: 'Offre deux fois inférieure', rules });
+          raw.push({ offer: currentOffer,              label: 'Offre similaire',             rules });
+        } else {
+          raw.push({ offer: currentOffer,              label: 'Offre similaire',  rules });
+          raw.push({ offer: offerAt(currentOffer, -1), label: 'Offre inférieure', rules });
+          raw.push({ offer: offerAt(currentOffer, +1), label: 'Offre supérieure', rules });
+        }
+      } else {
+        if (band === 'red') {
+          raw.push({ offer: currentOffer,              label: 'Offre similaire',  rules: { ok: 20, validate: 40 } });
+          raw.push({ offer: offerAt(currentOffer, -1), label: 'Offre inférieure', rules: { ok: 15, validate: 30 } });
+          raw.push({ offer: offerAt(currentOffer, +1), label: 'Offre supérieure', rules: null, notRecommended: true });
+        } else if (band === 'green') {
+          raw.push({ offer: offerAt(currentOffer, +1), label: 'Offre supérieure',           rules: { ok: 25, validate: 40 } });
+          raw.push({ offer: offerAt(currentOffer, +2), label: 'Offre deux fois supérieure', rules: { ok: 25, validate: 40 } });
+          raw.push({ offer: currentOffer,              label: 'Offre similaire',             rules: { ok: 15, validate: 30 } });
+          raw.push({ offer: offerAt(currentOffer, -1), label: 'Offre inférieure',           rules: { ok: 10, validate: 25 } });
+        } else {
+          raw.push({ offer: offerAt(currentOffer, +2), label: 'Offre deux fois supérieure', rules: { ok: 25, validate: 40 } });
+          raw.push({ offer: offerAt(currentOffer, +1), label: 'Offre supérieure',           rules: { ok: 25, validate: 40 } });
+          raw.push({ offer: currentOffer,              label: 'Offre similaire',             rules: { ok: 10, validate: 20 } });
+          raw.push({ offer: offerAt(currentOffer, -1), label: 'Offre inférieure',           rules: null, notRecommended: true });
+        }
+      }
+      return raw
+        .filter(s => s.offer !== null)
+        .map((s, i) => ({ ...s, rank: i + 1, recommended: i === 0, notRecommended: !!s.notRecommended }));
+    }
+
+    function discountStatus(discount, rules, notRecommended) {
+      if (notRecommended || !rules) return { key: 'nr',        label: 'Non recommandé',              color: 'gray'   };
+      if (discount > rules.validate)  return { key: 'forbidden', label: 'Interdit',                  color: 'red'    };
+      if (discount >= rules.ok)       return { key: 'validate',  label: 'Validation manager requise', color: 'orange' };
+      return                                 { key: 'ok',        label: 'Dans les seuils autonomes',  color: 'green'  };
+    }
+
+    const fmt    = n => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
+    const fmtDec = n => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+
+    // ─── Prorata ──────────────────────────────────────────────────────────────
+    function computeProrata(form) {
+      if (form.subStart !== 'early' || !form.subStartDate || !form.nextBilling || !form.mrr) return null;
+      const mrr = parseFloat(form.mrr);
+      if (!mrr || mrr <= 0) return null;
+
+      const upsellDate = new Date(form.subStartDate);
+      const endDate    = new Date(form.nextBilling);
+      if (isNaN(upsellDate) || isNaN(endDate) || upsellDate >= endDate) return null;
+
+      // Contrat annuel : début estimé = renouvellement − 365 jours
+      const startDate = new Date(endDate.getTime() - 365 * 24 * 60 * 60 * 1000);
+      if (upsellDate <= startDate) return null;
+
+      const totalDays     = 365;
+      const consumedDays  = Math.round((upsellDate - startDate) / (1000 * 60 * 60 * 24));
+      const remainingDays = totalDays - consumedDays;
+      const annualValue   = mrr * 12;
+      const consumedValue = annualValue * consumedDays / totalDays;
+      const creditValue   = annualValue * remainingDays / totalDays;
+
+      return {
+        totalDays, consumedDays, remainingDays, annualValue,
+        consumedValue, creditValue,
+        startDateStr: startDate.toLocaleDateString('fr-FR'),
+      };
+    }
+
+    // ─── Design atoms ─────────────────────────────────────────────────────────
+    const Label = ({ children }) => (
+      <p style={{ fontSize: 11, letterSpacing: '0.07em', color: C.label, fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>{children}</p>
+    );
+    const Card = ({ children, style = {} }) => (
+      <div style={{ background: C.card, borderRadius: 16, border: `1px solid ${C.border}`, ...style }}>{children}</div>
+    );
+    const inputStyle = {
+      width: '100%', border: `1px solid ${C.border}`, borderRadius: 10,
+      padding: '10px 14px', fontSize: 14, color: C.text, background: 'white',
+      outline: 'none', boxSizing: 'border-box',
+    };
+    const Toggle = ({ value, onChange }) => (
+      <div onClick={() => onChange(!value)} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: 8 }}>
+        <div className="toggle-track" style={{ background: value ? C.purple : '#D1D5DB' }}>
+          <div className="toggle-thumb" style={{ transform: value ? 'translateX(16px)' : 'translateX(0)' }} />
+        </div>
+      </div>
+    );
+    function SectionIcon({ color = C.purple, children }) {
+      return (
+        <div style={{ width: 32, height: 32, borderRadius: 9, background: color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>{children}</div>
+      );
+    }
+    function StatusBadge({ status }) {
+      const conf = {
+        ok:        { bg: C.greenLight,  border: '#A7F3D0', color: C.green,   icon: '✅', text: 'Autonome'             },
+        validate:  { bg: C.orangeLight, border: '#FDE68A', color: '#B45309', icon: '⚠️', text: 'Validation manager'  },
+        forbidden: { bg: C.redLight,    border: '#FECACA', color: C.red,     icon: '⛔', text: 'Interdit'             },
+        nr:        { bg: '#F9FAFB',     border: C.border,  color: C.muted,   icon: '—',  text: 'Non recommandé'      },
+      }[status.key] || {};
+      return (
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600, background: conf.bg, border: `1px solid ${conf.border}`, color: conf.color }}>
+          <span>{conf.icon}</span>{conf.text}
+        </div>
+      );
+    }
+
+    // ─── Bar Chart ────────────────────────────────────────────────────────────
+    function BarChart({ bars, chartHeight = 80 }) {
+      const [hoveredIdx, setHoveredIdx] = useState(null);
+      if (!bars || !bars.length) return null;
+      const maxAmount = Math.max(...bars.map(b => b.amount), 1);
+      const leftMargin = 52;
+      const barW = bars.length > 8 ? 24 : 28;
+      const gap  = bars.length > 8 ? 4  : 6;
+      const totalW = bars.length * (barW + gap) - gap;
+      const svgW = leftMargin + totalW + 8;
+      const topPadding = 14;
+      const bottomMargin = 20;
+      const nTicks = 4;
+      const ticks = Array.from({ length: nTicks + 1 }, (_, i) => (maxAmount * i) / nTicks);
+      return (
+        <div style={{ position: 'relative', overflowX: 'auto', marginTop: 16 }}>
+          <svg width={svgW} height={chartHeight + topPadding + bottomMargin + 4} style={{ display: 'block' }}>
+            {ticks.map((v, i) => {
+              const y = topPadding + chartHeight - (v / maxAmount) * chartHeight;
+              return (
+                <g key={i}>
+                  <line x1={leftMargin} x2={svgW - 4} y1={y} y2={y} stroke="#F3F4F6" strokeWidth={1} strokeDasharray="3,2" />
+                  <text x={leftMargin - 6} y={y + 4} textAnchor="end" fontSize={9} fill="#9CA3AF" fontFamily="Inter,sans-serif">
+                    {Math.round(v)}€
+                  </text>
+                </g>
+              );
+            })}
+            {bars.map((b, i) => {
+              const barH = b.amount > 0 ? Math.max(4, (b.amount / maxAmount) * chartHeight) : 3;
+              const x = leftMargin + i * (barW + gap);
+              const y = topPadding + chartHeight - barH;
+              return (
+                <g key={i} onMouseEnter={() => setHoveredIdx(i)} onMouseLeave={() => setHoveredIdx(null)} style={{ cursor: 'default' }}>
+                  <rect x={x} y={y} width={barW} height={barH} rx={4}
+                    fill={b.amount === 0 ? '#E5E7EB' : b.color}
+                    opacity={hoveredIdx === i ? 1 : 0.88} />
+                  <text x={x + barW / 2} y={topPadding + chartHeight + bottomMargin} textAnchor="middle" fontSize={8.5} fill="#9CA3AF" fontFamily="Inter,sans-serif">
+                    {b.dateLabel || b.label}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
+          {hoveredIdx !== null && bars[hoveredIdx] && (
+            <div style={{
+              position: 'absolute',
+              left: leftMargin + hoveredIdx * (barW + gap) + barW / 2,
+              top: Math.max(topPadding, topPadding + chartHeight - (bars[hoveredIdx].amount / maxAmount) * chartHeight - 62),
+              transform: 'translateX(-50%)',
+              background: 'white', border: '1px solid #E4E4F0', borderRadius: 10,
+              padding: '6px 12px', boxShadow: '0 4px 16px rgba(0,0,0,.1)',
+              zIndex: 20, pointerEvents: 'none', whiteSpace: 'nowrap',
+            }}>
+              <p style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>{bars[hoveredIdx].dateStr}</p>
+              <p style={{ fontSize: 14, fontWeight: 700, color: bars[hoveredIdx].amount === 0 ? '#10B981' : '#6366F1' }}>
+                {bars[hoveredIdx].amount === 0 ? '✓ payé' : new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 }).format(bars[hoveredIdx].amount)}
+              </p>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ─── Discount Slider ──────────────────────────────────────────────────────
+    function DiscountSlider({ discount, rules, notRecommended, onDiscountChange }) {
+      if (notRecommended || !rules) return null;
+      const status    = discountStatus(discount, rules, notRecommended);
+      const trackClr  = status.color === 'green' ? C.green : status.color === 'orange' ? C.orange : C.red;
+      const sliderMax = rules.validate;
+      const pct       = sliderMax > 0 ? (discount / sliderMax) * 100 : 0;
+      const trackStyle = {
+        background: sliderMax > 0 ? `linear-gradient(to right, ${trackClr} ${pct}%, #E5E7EB ${pct}%)` : '#E5E7EB',
+      };
+      return (
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <Label>Discount</Label>
+            <span style={{ fontSize: 16, fontWeight: 800, color: discount > 0 ? C.coral : C.text }}>{discount}%</span>
+          </div>
+          <input type="range" min={0} max={sliderMax} step={5} value={discount}
+            onChange={e => onDiscountChange(Number(e.target.value))}
+            style={{ ...trackStyle, width: '100%', cursor: 'pointer' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+            <span style={{ fontSize: 10, color: C.label }}>0%</span>
+            <span style={{ fontSize: 10, color: C.green, fontWeight: 700 }}>{rules.ok}%</span>
+            <span style={{ fontSize: 10, color: C.orange, fontWeight: 500 }}>Max {rules.validate}%</span>
+          </div>
+        </div>
+      );
+    }
+
+    // ─── Étape 1 : Formulaire ─────────────────────────────────────────────────
+    const EMPTY_FORM = {
+      account: '', ae: '', zone: 'A', offer: 'advanced',
+      arr: '', currentDiscount: 0,
+      engagement: '', mrr: '', nextBilling: '',
+      healthScore: '', band: null,
+      subStart: '', subStartDate: '',
+    };
+
+    function ClientForm({ form, onChange, onSubmit }) {
+      const hsNum    = parseInt(form.healthScore);
+      const hsOk     = !isNaN(hsNum) && hsNum >= 0;
+      const canSubmit = form.account && form.ae && form.offer && form.mrr && hsOk && form.band;
+
+      return (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+
+          {/* Panneau gauche */}
+          <Card style={{ padding: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+              <SectionIcon color={C.purple}>📋</SectionIcon>
+              <div>
+                <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>Compte client</p>
+                <p style={{ fontSize: 12, color: C.muted }}>Informations de l'abonnement actuel</p>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <Label>Nom du compte</Label>
+                <input style={inputStyle} placeholder="Le Perchoir Paris" value={form.account} onChange={e => onChange('account', e.target.value)} />
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <Label>AM Retention</Label>
+                <input style={inputStyle} placeholder="Marie Dupont" value={form.ae} onChange={e => onChange('ae', e.target.value)} />
+              </div>
+
+              <div>
+                <Label>Zone</Label>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {['A', 'B', 'C'].map(z => (
+                    <button key={z} onClick={() => onChange('zone', z)} style={{
+                      flex: 1, padding: '9px 0', borderRadius: 9, fontSize: 13, fontWeight: 700,
+                      border: `1.5px solid ${form.zone === z ? C.purple : C.border}`,
+                      background: form.zone === z ? C.purpleLight : 'white',
+                      color: form.zone === z ? C.purple : C.muted,
+                      cursor: 'pointer', transition: 'all .15s',
+                    }}>Zone {z}</button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <Label>Offre actuelle</Label>
+                <select style={{ ...inputStyle, paddingRight: 32 }} value={form.offer} onChange={e => onChange('offer', e.target.value)}>
+                  {OFFER_KEYS.map(k => <option key={k} value={k}>{OFFER_NAMES[k]}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <Label>ARR actuel <span style={{ color: C.label, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>· optionnel</span></Label>
+                <div style={{ position: 'relative' }}>
+                  <input style={{ ...inputStyle, paddingRight: 28 }} type="number" placeholder="3990" value={form.arr} onChange={e => onChange('arr', e.target.value)} />
+                  <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: C.label }}>€</span>
+                </div>
+                {form.arr && form.currentDiscount > 0 && (
+                  <p style={{ fontSize: 11, color: C.purple, fontWeight: 600, marginTop: 4 }}>→ Remise actuelle : {form.currentDiscount}%</p>
+                )}
+              </div>
+
+              <div>
+                <Label>MRR actuel</Label>
+                <div style={{ position: 'relative' }}>
+                  <input style={{ ...inputStyle, paddingRight: 42 }} type="number" placeholder="333" value={form.mrr} onChange={e => onChange('mrr', e.target.value)} />
+                  <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: C.label }}>€/mois</span>
+                </div>
+              </div>
+
+              <div>
+                <Label>Date de renouvellement <span style={{ color: C.label, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>· optionnel</span></Label>
+                <input style={inputStyle} type="date" value={form.nextBilling} onChange={e => onChange('nextBilling', e.target.value)} />
+              </div>
+
+              <div style={{ gridColumn: '1 / -1' }}>
+                <Label>Engagement <span style={{ color: C.label, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>· optionnel</span></Label>
+                <select style={{ ...inputStyle, paddingRight: 32 }} value={form.engagement} onChange={e => onChange('engagement', e.target.value)}>
+                  <option value="">—</option>
+                  {ENGAGEMENT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+
+              <div style={{ gridColumn: '1 / -1' }}>
+                <Label>Début de la nouvelle souscription <span style={{ color: C.label, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>· optionnel</span></Label>
+                <select style={{ ...inputStyle, paddingRight: 32 }} value={form.subStart} onChange={e => onChange('subStart', e.target.value)}>
+                  <option value="">—</option>
+                  <option value="renewal">Au moment du renouvellement</option>
+                  <option value="early">Early renewal — À une date précise</option>
+                </select>
+                {form.subStart === 'early' && (
+                  <input
+                    style={{ ...inputStyle, marginTop: 8, border: `1.5px solid ${C.purple}` }}
+                    type="date" placeholder="Date de début" value={form.subStartDate}
+                    onChange={e => onChange('subStartDate', e.target.value)}
+                  />
+                )}
+              </div>
+            </div>
+          </Card>
+
+          {/* Panneau droit */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <Card style={{ padding: 24, flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+                <SectionIcon color={C.coral}>📈</SectionIcon>
+                <div>
+                  <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>Performance</p>
+                  <p style={{ fontSize: 12, color: C.muted }}>Health Score & Pageviews Search</p>
+                </div>
+              </div>
+
+              <Label>Health Score</Label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+                <div style={{ position: 'relative' }}>
+                  <input type="number" min="0" placeholder="65" value={form.healthScore}
+                    onChange={e => onChange('healthScore', e.target.value)}
+                    style={{
+                      width: 100, border: `1.5px solid ${form.healthScore === '' ? C.border : hsOk ? C.purple : C.red}`,
+                      borderRadius: 12, padding: '12px 0', textAlign: 'center',
+                      fontSize: 32, fontWeight: 900, color: C.text,
+                      background: form.healthScore === '' ? 'white' : hsOk ? C.purpleLight : C.redLight,
+                      outline: 'none', boxSizing: 'border-box',
+                    }} />
+                </div>
+                {hsOk && (
+                  <div style={{
+                    padding: '8px 14px', borderRadius: 10, fontSize: 13, fontWeight: 700,
+                    background: hsNum <= 70 ? C.coralLight : C.greenLight,
+                    color: hsNum <= 70 ? C.coral : C.green,
+                    border: `1px solid ${hsNum <= 70 ? C.coralMid : '#A7F3D0'}`,
+                  }}>
+                    {hsNum <= 70 ? '⚠️ Fragile' : '✅ Sain'}
+                  </div>
+                )}
+              </div>
+
+              <Label>Pageviews Search</Label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {BANDS.map(b => {
+                  const active = form.band === b.key;
+                  const cm = {
+                    red:   { bg: active ? '#FEE2E2' : 'white', border: active ? '#FCA5A5' : C.border, text: active ? '#B91C1C' : C.muted },
+                    green: { bg: active ? '#DCFCE7' : 'white', border: active ? '#86EFAC' : C.border, text: active ? '#15803D' : C.muted },
+                    blue:  { bg: active ? '#DBEAFE' : 'white', border: active ? '#93C5FD' : C.border, text: active ? '#1D4ED8' : C.muted },
+                  }[b.key];
+                  return (
+                    <button key={b.key} onClick={() => onChange('band', b.key)} style={{
+                      flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+                      padding: '12px 8px', borderRadius: 12, cursor: 'pointer', transition: 'all .15s',
+                      border: `1.5px solid ${cm.border}`, background: cm.bg,
+                    }}>
+                      <span style={{ fontSize: 22 }}>{b.emoji}</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, marginTop: 4, color: cm.text }}>{b.label}</span>
+                      <span style={{ fontSize: 10, color: C.label, marginTop: 1 }}>{b.sub}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </Card>
+
+            <button onClick={onSubmit} disabled={!canSubmit} style={{
+              width: '100%', padding: '16px 0', borderRadius: 14, fontSize: 14, fontWeight: 800,
+              border: 'none', cursor: canSubmit ? 'pointer' : 'not-allowed', transition: 'all .15s',
+              background: canSubmit ? C.purple : '#E5E7EB',
+              color: canSubmit ? 'white' : C.label,
+              boxShadow: canSubmit ? `0 4px 16px ${C.purple}44` : 'none',
+              letterSpacing: '.02em',
+            }}>
+              {canSubmit ? 'Voir les recommandations →' : 'Complétez les champs obligatoires'}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // ─── Étape 2 : Scénarios ──────────────────────────────────────────────────
+    function ScenarioCard({ scenario, discount, onDiscountChange, zone, isSelected, onSelect }) {
+      const { offer, label, recommended, rules, notRecommended, rank } = scenario;
+      const catalog    = PRICING[zone]?.upfront?.[offer] ?? 0;
+      const negotiated = catalog * (1 - discount / 100);
+      const status     = discountStatus(discount, rules, notRecommended);
+
+      return (
+        <div style={{
+          background: 'white', borderRadius: 16, padding: 20, position: 'relative',
+          border: `${isSelected || recommended ? 2 : 1}px solid ${isSelected ? C.purple : recommended ? C.coral : C.border}`,
+          boxShadow: isSelected ? `0 4px 20px ${C.purple}22` : recommended ? `0 4px 16px ${C.coral}18` : 'none',
+          transition: 'all .15s',
+        }}>
+          {(recommended || notRecommended) && (
+            <div style={{ position: 'absolute', top: -12, left: 16 }}>
+              {recommended && <span style={{ background: C.coral, color: 'white', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>⭐ Recommandée</span>}
+              {notRecommended && <span style={{ background: C.label, color: 'white', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>Non recommandé</span>}
+            </div>
+          )}
+
+          <div style={{ marginTop: recommended || notRecommended ? 8 : 0, marginBottom: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <p style={{ fontSize: 22, fontWeight: 900, color: C.text }}>{OFFER_NAMES[offer]}</p>
+              <StatusBadge status={status} />
+            </div>
+            <p style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
+              Catalogue <span style={{ fontWeight: 600, color: discount > 0 ? C.coral : C.muted, textDecoration: discount > 0 ? 'line-through' : 'none' }}>{fmt(catalog)}/an</span>
+            </p>
+          </div>
+
+          {!notRecommended && rules ? (
+            <DiscountSlider discount={discount} rules={rules} notRecommended={notRecommended} onDiscountChange={onDiscountChange} />
+          ) : <div style={{ height: 52 }} />}
+
+          <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 14, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+            <div>
+              <Label>Prix négocié</Label>
+              <p style={{ fontSize: 24, fontWeight: 900, color: C.text }}>{fmt(negotiated)}<span style={{ fontSize: 12, fontWeight: 400, color: C.muted }}>/an</span></p>
+              <p style={{ fontSize: 11, color: C.muted }}>{fmt(negotiated / 12)}/mois</p>
+            </div>
+            {!notRecommended && status.key !== 'forbidden' && (
+              <button onClick={() => onSelect(rank - 1)} style={{
+                padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700,
+                border: 'none', cursor: 'pointer', transition: 'all .15s',
+                background: isSelected ? C.purple : C.text, color: 'white',
+                boxShadow: isSelected ? `0 4px 12px ${C.purple}44` : 'none',
+              }}>
+                {isSelected ? '✓ Sélectionné' : 'Choisir →'}
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // ─── Prorata Banner ───────────────────────────────────────────────────────
+    function ProrataBanner({ prorata }) {
+      return (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ background: C.purpleLight, border: `1px solid ${C.purpleMid}`, borderRadius: 12, padding: '10px 16px', marginBottom: 12, fontSize: 12, color: C.purple, fontWeight: 500 }}>
+            ⚡ Early renewal détecté — crédit prorata calculé sur la base d'un contrat annuel débuté le {prorata.startDateStr}
+          </div>
+          <div style={{ display: 'flex', gap: 12 }}>
+            {[
+              { label: 'Jours consommés', value: String(prorata.consumedDays), sub: `/ ${prorata.totalDays} jours`, hi: false },
+              { label: 'Valeur consommée', value: fmtDec(prorata.consumedValue), sub: 'sur l\'ancien contrat', hi: false },
+              { label: 'Crédit prorata', value: fmtDec(prorata.creditValue), sub: 'à déduire du nouveau contrat', hi: true },
+            ].map((s, i) => (
+              <div key={i} style={{
+                flex: 1, borderRadius: 14, padding: '16px 20px', textAlign: 'center',
+                background: s.hi ? C.coralLight : '#F9FAFB',
+                border: `1px solid ${s.hi ? C.coralMid : C.border}`,
+              }}>
+                <Label>{s.label}</Label>
+                <p style={{ fontSize: s.hi ? 24 : 20, fontWeight: 900, color: s.hi ? C.coral : C.text, marginTop: 2 }}>{s.value}</p>
+                <p style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{s.sub}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // ─── Bénéfices offre (Mode Démo) ─────────────────────────────────────────
+    function OfferBenefits({ offer }) {
+      const b = OFFER_BENEFITS[offer];
+      if (!b) return null;
+      return (
+        <div style={{ background: C.purpleLight, borderRadius: 16, padding: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            <span style={{ fontSize: 22 }}>✨</span>
+            <p style={{ fontWeight: 800, fontSize: 17, color: C.purple }}>Bénéfices de l'offre {OFFER_NAMES[offer]}</p>
+          </div>
+          <p style={{ fontSize: 15, fontWeight: 700, color: C.purple, marginBottom: 4 }}>Accélérez votre activité : {b.target}</p>
+          {b.includes && <p style={{ fontSize: 13, color: C.muted, fontStyle: 'italic', marginBottom: 16 }}>Inclut {b.includes}</p>}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+            {b.features.map((f, i) => (
+              <div key={i} style={{ background: 'white', borderRadius: 12, padding: '14px 16px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <div style={{ width: 36, height: 36, borderRadius: 9, background: C.purpleLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>{f.icon}</div>
+                <div>
+                  <p style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 2 }}>{f.title}</p>
+                  <p style={{ fontSize: 12, color: C.muted, lineHeight: 1.45 }}>{f.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>{b.pitch}</p>
+        </div>
+      );
+    }
+
+    // ─── Étape 3 : Paiement ───────────────────────────────────────────────────
+    function PaymentSection({ scenario, discountValue, discountFacilite, onDiscountFaciliteChange, zone, selectedPayment, onPaymentSelect, prorata, demoMode, startDate }) {
+      const [upfrontTimes, setUpfrontTimes] = useState(1);
+      const [demoShowInstallments, setDemoShowInstallments] = useState(false);
+      const [demoShowFacilite,     setDemoShowFacilite]     = useState(false);
+
+      useEffect(() => {
+        if (demoMode) { setDemoShowInstallments(false); setDemoShowFacilite(false); }
+      }, [demoMode]);
+
+      const showInstallmentTabs = !demoMode || demoShowInstallments;
+      const showFaciliteBlock   = !demoMode || demoShowFacilite;
+
+      const { offer, rules, notRecommended } = scenario;
+
+      const catalog        = PRICING[zone]?.upfront?.[offer] ?? 0;
+      const negotiated     = catalog * (1 - discountValue / 100);
+      const facilite       = PRICING[zone]?.facilite?.[offer] ?? 0;
+      const faciliteNet    = facilite * (1 - discountFacilite / 100);
+      const canFacilite    = offer !== 'basic';
+
+      // Crédit prorata — application séquentielle
+      const credit  = prorata?.creditValue ?? 0;
+      const surplus = faciliteNet - negotiated;
+
+      // Upfront : crédit absorbé versement par versement
+      const upfrontSlots = { 1: ['M1'], 2: ['M1', 'M7'], 3: ['M1', 'M5', 'M9'] }[upfrontTimes];
+      const rawPerInstallment = negotiated / upfrontTimes;
+      let creditLeftUp = credit;
+      const upfrontCredited = upfrontSlots.map(lbl => {
+        const covered = Math.min(creditLeftUp, rawPerInstallment);
+        creditLeftUp -= covered;
+        return { lbl, raw: rawPerInstallment, covered, net: rawPerInstallment - covered };
+      });
+      const upfrontFinal = upfrontCredited.reduce((s, v) => s + v.net, 0);
+      // Facilité : crédit absorbé mois par mois
+      const m1Raw    = faciliteNet * 0.20;
+      const mRestRaw = faciliteNet * 0.06;
+      const faciliteAllMonths = [
+        { label: 'M1', raw: m1Raw },
+        { label: 'M2', raw: m1Raw },
+        ...[3,4,5,6,7,8,9,10,11,12].map(n => ({ label: `M${n}`, raw: mRestRaw })),
+      ];
+      let creditLeftF = credit;
+      const faciliteMonths = faciliteAllMonths.map(m => {
+        const covered = Math.min(creditLeftF, m.raw);
+        creditLeftF -= covered;
+        return { ...m, covered, net: m.raw - covered };
+      });
+      const faciliteFinal = faciliteMonths.reduce((s, v) => s + v.net, 0);
+
+      // Helpers dates pour les barres (offset en mois calendaires)
+      const addMonths = mo => {
+        const d = new Date((startDate || '2000-01-01') + 'T00:00:00');
+        d.setMonth(d.getMonth() + mo);
+        return d;
+      };
+      const barLabel = mo => {
+        if (!startDate) return mo === 0 ? 'Éch. 1' : `M+${mo}`;
+        return addMonths(mo).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+      };
+      const barTooltip = mo => {
+        if (!startDate) return mo === 0 ? 'Date de renouvellement' : `+${mo} mois`;
+        return addMonths(mo).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+      };
+      const barShortDate = mo => {
+        if (!startDate) return '';
+        return addMonths(mo).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+      };
+      const upfrontMonthOffsets = { 1: [0], 2: [0, 1], 3: [0, 1, 2] }[upfrontTimes];
+
+      const upfrontBars = upfrontCredited.map((v, i) => ({
+        amount: v.net,
+        color: v.net === 0 ? '#D1D5DB' : '#6366F1CC',
+        label: v.lbl,
+        dateLabel: barLabel(upfrontMonthOffsets[i]),
+        dateStr: barTooltip(upfrontMonthOffsets[i]),
+      }));
+      const faciliteBars = faciliteMonths.map((v, i) => ({
+        amount: v.net,
+        color: v.net === 0 ? '#D1D5DB' : (i < 2 ? '#F07A5ACC' : '#6366F199'),
+        label: v.label,
+        dateLabel: barLabel(i),
+        dateStr: barTooltip(i),
+      }));
+
+      const cardBase = (active, disabled) => ({
+        background: 'white', borderRadius: 16, padding: 24,
+        border: `${active ? 2 : 1}px solid ${active ? C.purple : C.border}`,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.5 : 1,
+        boxShadow: active ? `0 4px 20px ${C.purple}22` : 'none',
+        transition: 'all .15s', flex: 1,
+      });
+
+      return (
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+            <SectionIcon color={C.purple}>💳</SectionIcon>
+            <div>
+              <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>Mode de paiement</p>
+              <p style={{ fontSize: 12, color: C.muted }}>Choisissez la modalité de règlement</p>
+            </div>
+          </div>
+
+          {prorata && <ProrataBanner prorata={prorata} />}
+
+          <div style={{ display: 'flex', gap: 16 }}>
+
+            {/* ── Upfront — masqué en démo quand facilité active ── */}
+            {(!demoMode || !demoShowFacilite) && (
+            <div style={{ ...cardBase(selectedPayment === 'upfront', false), flex: demoMode && demoShowFacilite ? 'unset' : 1 }} onClick={() => onPaymentSelect('upfront')}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                <div>
+                  <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>Annuel upfront</p>
+                  <p style={{ fontSize: 12, color: C.muted }}>Règlement en 1, 2 ou 3 fois</p>
+                </div>
+                {discountValue > 0 && <span style={{ background: C.greenLight, color: C.green, border: `1px solid #A7F3D0`, borderRadius: 8, fontSize: 11, fontWeight: 700, padding: '3px 8px' }}>−{discountValue}%</span>}
+              </div>
+
+              <Label>Montant facturé</Label>
+              {/* Prix avec ou sans prorata */}
+              {credit > 0 ? (
+                <div style={{ background: '#F9FAFB', borderRadius: 12, padding: '12px 16px', marginBottom: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontSize: 13, color: C.muted }}>Prix négocié</span>
+                    <span style={{ fontSize: 13, color: C.muted, textDecoration: 'line-through' }}>{fmtDec(negotiated)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 8, borderBottom: `1px solid ${C.border}`, marginBottom: 8 }}>
+                    <span style={{ fontSize: 13, color: C.coral, fontWeight: 600 }}>Crédit prorata</span>
+                    <span style={{ fontSize: 13, color: C.coral, fontWeight: 700 }}>− {fmtDec(credit)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>À régler</span>
+                    <span style={{ fontSize: 20, fontWeight: 900, color: C.purple }}>{fmtDec(upfrontFinal)} HT</span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <p style={{ fontSize: 32, fontWeight: 900, color: C.purple }}>{fmtDec(negotiated)} HT</p>
+                  {discountValue > 0 && <p style={{ fontSize: 12, color: C.coral, textDecoration: 'line-through', marginTop: 2 }}>Prix catalogue : {fmt(catalog)}</p>}
+                </>
+              )}
+
+              {/* Onglets 1× / 2× / 3× — masqués en phase 1 démo */}
+              {showInstallmentTabs && (
+                <div style={{ display: 'flex', gap: 0, marginTop: 16, marginBottom: 14, borderRadius: 10, border: `1px solid ${C.border}`, overflow: 'hidden', background: '#F9FAFB' }}>
+                  {[1, 2, 3].map(n => (
+                    <button key={n} onClick={e => { e.stopPropagation(); setUpfrontTimes(n); }} style={{
+                      flex: 1, padding: '8px 0', fontSize: 13, fontWeight: 700,
+                      border: 'none', borderRight: n < 3 ? `1px solid ${C.border}` : 'none',
+                      cursor: 'pointer', transition: 'all .15s',
+                      background: upfrontTimes === n ? 'white' : 'transparent',
+                      color: upfrontTimes === n ? C.text : C.muted,
+                      boxShadow: upfrontTimes === n ? '0 1px 4px rgba(0,0,0,.08)' : 'none',
+                    }}>
+                      {n} fois
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <Label>Détail des versements</Label>
+              {upfrontCredited.map((v, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < upfrontCredited.length - 1 ? `1px solid ${C.border}` : 'none' }}>
+                  <span style={{ fontSize: 13, color: C.muted }}>
+                    Versement {i + 1}
+                    {barShortDate(upfrontMonthOffsets[i]) && <span style={{ fontSize: 11, color: C.label }}> · {barShortDate(upfrontMonthOffsets[i])}</span>}
+                  </span>
+                  {v.net === 0 ? (
+                    <span style={{ fontSize: 13, fontWeight: 700, color: C.green }}>✓ couvert</span>
+                  ) : (
+                    <div style={{ textAlign: 'right' }}>
+                      {v.covered > 0 && <div style={{ fontSize: 11, color: C.muted, textDecoration: 'line-through' }}>{fmtDec(v.raw)} HT</div>}
+                      <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{fmtDec(v.net)} HT</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              <BarChart bars={upfrontBars} chartHeight={demoMode ? 130 : 80} />
+
+              {/* Boutons d'action démo — sous le graphique */}
+              {demoMode && !demoShowFacilite && (
+                <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }} onClick={e => e.stopPropagation()}>
+                  {!demoShowInstallments && (
+                    <button onClick={() => setDemoShowInstallments(true)} style={{
+                      padding: '11px 16px', borderRadius: 12, fontSize: 13, fontWeight: 700,
+                      border: `2px solid #6366F1`, background: '#EEF2FF', color: '#6366F1',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
+                    }}>📅 Proposer un paiement échelonné</button>
+                  )}
+                  {canFacilite && (
+                    <button onClick={() => { setDemoShowFacilite(true); setDemoShowInstallments(false); setUpfrontTimes(1); }} style={{
+                      padding: '11px 16px', borderRadius: 12, fontSize: 13, fontWeight: 700,
+                      border: `2px solid #F07A5A`, background: '#FFF1EE', color: '#F07A5A',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
+                    }}>💰 Afficher l'option Confort Cash-flow</button>
+                  )}
+                  {demoShowInstallments && (
+                    <button onClick={() => { setDemoShowInstallments(false); setUpfrontTimes(1); }} style={{
+                      padding: '9px 16px', borderRadius: 12, fontSize: 12, fontWeight: 600,
+                      border: `1px solid #E4E4F0`, background: '#F9FAFB', color: '#6B7280',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                    }}>🔄 Réinitialiser à 1 fois</button>
+                  )}
+                </div>
+              )}
+
+              {/* Bouton Sélectionner */}
+              <div style={{ marginTop: 16, borderTop: `1px solid ${C.border}`, paddingTop: 14 }}>
+                <button onClick={e => { e.stopPropagation(); onPaymentSelect('upfront'); }} style={{
+                  width: '100%', padding: '11px 0', borderRadius: 10, fontSize: 13, fontWeight: 700,
+                  border: 'none', cursor: 'pointer', transition: 'all .15s',
+                  background: selectedPayment === 'upfront' ? '#6366F1' : '#111827', color: 'white',
+                  boxShadow: selectedPayment === 'upfront' ? '0 4px 12px #6366F144' : 'none',
+                }}>
+                  {selectedPayment === 'upfront' ? '✓ Mode sélectionné — Voir le résumé ↓' : 'Sélectionner ce mode →'}
+                </button>
+              </div>
+            </div>
+            )}
+
+            {/* ── Facilité — masquée en démo sauf si demoShowFacilite ── */}
+            {(!demoMode || demoShowFacilite) && (
+            <div style={cardBase(selectedPayment === 'facilite', !canFacilite)} onClick={() => canFacilite && onPaymentSelect('facilite')}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                <div>
+                  <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>Annuel facilité 12×</p>
+                  <p style={{ fontSize: 12, color: C.muted }}>2×20% puis 10×6%</p>
+                </div>
+                {!canFacilite
+                  ? <span style={{ background: C.redLight, color: C.red, border: `1px solid #FECACA`, borderRadius: 8, fontSize: 11, fontWeight: 700, padding: '3px 8px' }}>Non autorisé (Basic)</span>
+                  : discountFacilite > 0
+                    ? <span style={{ background: C.greenLight, color: C.green, border: `1px solid #A7F3D0`, borderRadius: 8, fontSize: 11, fontWeight: 700, padding: '3px 8px' }}>−{discountFacilite}%</span>
+                    : null
+                }
+              </div>
+
+              <Label>Montant facturé</Label>
+              {credit > 0 && canFacilite ? (
+                <div style={{ background: '#F9FAFB', borderRadius: 12, padding: '12px 16px', marginBottom: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontSize: 13, color: C.muted }}>Prix facilité</span>
+                    <span style={{ fontSize: 13, color: C.muted, textDecoration: 'line-through' }}>{fmtDec(faciliteNet)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 8, borderBottom: `1px solid ${C.border}`, marginBottom: 8 }}>
+                    <span style={{ fontSize: 13, color: C.coral, fontWeight: 600 }}>Crédit prorata</span>
+                    <span style={{ fontSize: 13, color: C.coral, fontWeight: 700 }}>− {fmtDec(credit)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>À régler</span>
+                    <span style={{ fontSize: 20, fontWeight: 900, color: C.coral }}>{fmtDec(faciliteFinal)} HT</span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <p style={{ fontSize: 32, fontWeight: 900, color: C.coral }}>{fmtDec(faciliteNet)} HT</p>
+                  {discountFacilite > 0 && <p style={{ fontSize: 12, color: C.coral, textDecoration: 'line-through', marginTop: 2 }}>Prix catalogue : {fmt(facilite)}</p>}
+                </>
+              )}
+              {canFacilite && !demoMode && <p style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>Surcoût vs upfront : <span style={{ color: surplus > 0 ? C.coral : C.green, fontWeight: 600 }}>{surplus > 0 ? '+' : ''}{fmt(surplus)}</span></p>}
+
+              {/* Discount facilité */}
+              {canFacilite && (
+                <div onClick={e => e.stopPropagation()} style={{ marginTop: 16 }}>
+                  <DiscountSlider discount={discountFacilite} rules={rules} notRecommended={notRecommended} onDiscountChange={onDiscountFaciliteChange} />
+                </div>
+              )}
+
+              {/* Résumé échéancier */}
+              <div style={{ marginTop: canFacilite ? 4 : 20 }}>
+                <Label>Échéancier{credit > 0 && canFacilite ? ' (après crédit)' : ''}</Label>
+                {credit > 0 && canFacilite ? (
+                  <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+                    {faciliteMonths.map((m, i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: i < 11 ? `1px solid ${C.border}` : 'none' }}>
+                        <span style={{ fontSize: 12, color: C.muted }}>
+                          {i === 0 ? '1ère échéance (20%)' : i === 1 ? '2ème échéance (20%)' : `Mois ${i + 1} (6%)`}
+                        </span>
+                        {m.net === 0 ? (
+                          <span style={{ fontSize: 12, fontWeight: 700, color: C.green }}>✓ couvert</span>
+                        ) : (
+                          <div style={{ textAlign: 'right' }}>
+                            {m.covered > 0 && <div style={{ fontSize: 10, color: C.muted, textDecoration: 'line-through' }}>{fmtDec(m.raw)} HT</div>}
+                            <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{fmtDec(m.net)} HT</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  [
+                    { label: '1ère échéance (20%)', amount: m1Raw, bold: true },
+                    { label: '2ème échéance (20%)', amount: m1Raw, bold: true },
+                    { label: '6% × 10 mensualités', amount: mRestRaw, suffix: '/mois', bold: false },
+                  ].map((r, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 0', borderBottom: i < 2 ? `1px solid ${C.border}` : 'none' }}>
+                      <span style={{ fontSize: 13, color: C.muted }}>{r.label}</span>
+                      <span style={{ fontSize: 14, fontWeight: r.bold ? 700 : 600, color: C.text }}>{fmtDec(r.amount)} HT{r.suffix || ''}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <BarChart bars={faciliteBars} chartHeight={demoMode ? 130 : 80} />
+
+              {/* Reset démo */}
+              {demoMode && demoShowFacilite && (
+                <div style={{ marginTop: 16 }} onClick={e => e.stopPropagation()}>
+                  <button onClick={() => { setDemoShowFacilite(false); setDemoShowInstallments(false); setUpfrontTimes(1); }} style={{
+                    width: '100%', padding: '9px 0', borderRadius: 10, fontSize: 12, fontWeight: 600,
+                    border: `1px solid #E4E4F0`, background: '#F9FAFB', color: '#6B7280', cursor: 'pointer',
+                  }}>🔄 Revenir au paiement classique</button>
+                </div>
+              )}
+
+              {canFacilite && (
+                <div style={{ marginTop: 16, borderTop: `1px solid ${C.border}`, paddingTop: 14 }}>
+                  <button onClick={e => { e.stopPropagation(); onPaymentSelect('facilite'); }} style={{
+                    width: '100%', padding: '11px 0', borderRadius: 10, fontSize: 13, fontWeight: 700,
+                    border: 'none', cursor: 'pointer', transition: 'all .15s',
+                    background: selectedPayment === 'facilite' ? '#6366F1' : '#111827', color: 'white',
+                    boxShadow: selectedPayment === 'facilite' ? '0 4px 12px #6366F144' : 'none',
+                  }}>
+                    {selectedPayment === 'facilite' ? '✓ Mode sélectionné — Voir le résumé ↓' : 'Sélectionner ce mode →'}
+                  </button>
+                </div>
+              )}
+            </div>
+            )}
+
+          </div>
+        </div>
+      );
+    }
+
+    // ─── Étape 4 : Output ────────────────────────────────────────────────────
+    function OutputSection({ form, scenario, discountValue, discountFacilite, payment, prorata, demoMode }) {
+      const [copied, setCopied] = useState(null);
+      const { offer, rules, notRecommended, label: scenarioLabel } = scenario;
+      const catalog        = PRICING[form.zone]?.upfront?.[offer] ?? 0;
+      const negotiated     = catalog * (1 - discountValue / 100);
+      const facilite       = PRICING[form.zone]?.facilite?.[offer] ?? 0;
+      const faciliteNet    = facilite * (1 - discountFacilite / 100);
+      const credit         = prorata?.creditValue ?? 0;
+      const upfrontFinal   = Math.max(0, negotiated - credit);
+      const faciliteFinal  = Math.max(0, faciliteNet - credit);
+      const finalPrice     = payment === 'upfront' ? upfrontFinal : faciliteFinal;
+      const canFacilite    = offer !== 'basic';
+      const status         = discountStatus(discountValue, rules, notRecommended);
+      const statusFac      = discountStatus(discountFacilite, rules, notRecommended);
+      const needsVal       = status.key === 'validate' || (payment === 'facilite' && statusFac.key === 'validate');
+      const payLabel       = payment === 'upfront' ? 'Annuel upfront' : 'Annuel facilité 12×';
+      const bandEmoji      = BAND_META[form.band]?.emoji || '';
+      const hsNum          = parseInt(form.healthScore);
+      const engLabel       = ENGAGEMENT_OPTIONS.find(o => o.value === form.engagement)?.label || '';
+
+      // ── Date helpers ─────────────────────────────────────────────────────────
+      const payStart = form.subStart === 'early' && form.subStartDate ? form.subStartDate
+                     : form.subStart === 'renewal' && form.nextBilling ? form.nextBilling : '';
+      const fmtDateLong = s => {
+        if (!s) return '—';
+        const d = new Date(s + 'T00:00:00');
+        return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+      };
+      const payDate = n => {
+        if (!payStart) return '—';
+        const d = new Date(payStart + 'T00:00:00');
+        d.setDate(d.getDate() + n * 30);
+        return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+      };
+
+      // ── Abonnement actuel ─────────────────────────────────────────────────────
+      const currentCatalogPrice = PRICING[form.zone]?.upfront?.[form.offer] ?? 0;
+      const currentDiscountPct  = Number(form.currentDiscount) || 0;
+      const currentAnnualPrice  = currentCatalogPrice * (1 - currentDiscountPct / 100);
+      const currentPriceStr     = currentDiscountPct > 0
+        ? `${fmtDec(currentAnnualPrice)} HT, remise ${currentDiscountPct}%`
+        : `${fmt(currentCatalogPrice)} HT, sans remise`;
+
+      // ── Sequential credit helpers ─────────────────────────────────────────────
+      const upfrontSeq = times => {
+        const raw = negotiated / times;
+        let cLeft = credit;
+        return Array.from({ length: times }, () => {
+          const covered = Math.min(cLeft, raw);
+          cLeft -= covered;
+          return { raw, covered, net: raw - covered };
+        });
+      };
+
+      const m1RawE    = faciliteNet * 0.20;
+      const mRestRawE = faciliteNet * 0.06;
+      const faciliteSeqE = (() => {
+        let cLeft = credit;
+        return [
+          { label: '1ère échéance (20%)', raw: m1RawE },
+          { label: '2ème échéance (20%)', raw: m1RawE },
+          ...[3,4,5,6,7,8,9,10,11,12].map(() => ({ raw: mRestRawE })),
+        ].map(m => {
+          const covered = Math.min(cLeft, m.raw);
+          cLeft -= covered;
+          return { ...m, covered, net: m.raw - covered };
+        });
+      })();
+
+      const amtStr = v => v.net === 0 ? `0 € HT ✓ couvert par votre crédit` : `${fmtDec(v.net)} HT`;
+      const installLine = (v, idx, total) => {
+        const label = total === 1 ? `Paiement unique le ${payDate(0)}` : `Échéance ${idx+1}/${total} le ${payDate(idx)}`;
+        return `      • ${label} : ${amtStr(v)}`;
+      };
+
+      const m3net = faciliteSeqE[2]?.net ?? mRestRawE;
+      const m3to12Equal = faciliteSeqE.slice(2).every(m => Math.abs(m.net - m3net) < 0.01);
+      const faciliteM3lines = m3to12Equal
+        ? [`      • Puis 10 mensualités de ${fmtDec(m3net)} HT (6%) à partir du ${payDate(2)}`]
+        : faciliteSeqE.slice(2).map((m, i) => `      • Mois ${i+3} (6%) le ${payDate(i+2)} : ${amtStr(m)}`);
+
+      const newOfferUpfront  = discountValue > 0
+        ? `${OFFER_NAMES[offer]} ${fmtDec(negotiated)} HT, remise ${discountValue}%`
+        : `${OFFER_NAMES[offer]} ${fmt(catalog)} HT, sans remise`;
+      const newOfferFacilite = canFacilite
+        ? (discountFacilite > 0
+          ? ` OU ${OFFER_NAMES[offer]} paiement facilité à ${fmtDec(faciliteNet)} HT, remise ${discountFacilite}%`
+          : ` OU ${OFFER_NAMES[offer]} paiement facilité à ${fmt(facilite)} HT, sans remise`)
+        : '';
+
+      const email = [
+        `Objet : Proposition de renouvellement — ${form.account}`,
+        ``,
+        `Bonjour,`,
+        ``,
+        `Je reviens vers vous pour vous présenter notre proposition de renouvellement Joy.`,
+        ``,
+        `Abonnement actuel : ${OFFER_NAMES[form.offer]} - ${currentPriceStr}, renouvellement initial prévu le ${fmtDateLong(form.nextBilling)}.`,
+        ``,
+        `Nouvelle offre : ${newOfferUpfront}${newOfferFacilite}.`,
+        ...(payStart ? [`Cette nouvelle offre débuterait à partir du ${fmtDateLong(payStart)} pour un engagement d'un an.`] : []),
+        ``,
+        `${'━'.repeat(45)}`,
+        `💳 OPTION 1 — Paiement classique`,
+        `   Montant total à payer : ${fmtDec(upfrontFinal)} HT`,
+        ...(credit > 0 ? [`   (dont ${fmtDec(credit)} de crédit prorata déduit de votre ancien contrat)`] : []),
+        ``,
+        `   ▸ En 1 fois :`,
+        ...upfrontSeq(1).map((v, i) => installLine(v, i, 1)),
+        ``,
+        `   ▸ En 2 fois :`,
+        ...upfrontSeq(2).map((v, i) => installLine(v, i, 2)),
+        ``,
+        `   ▸ En 3 fois :`,
+        ...upfrontSeq(3).map((v, i) => installLine(v, i, 3)),
+        ...(canFacilite ? [
+          ``,
+          `${'━'.repeat(45)}`,
+          `🗓️ OPTION 2 — Paiement facilité en 12 fois`,
+          `   Montant total à payer : ${fmtDec(faciliteFinal)} HT`,
+          ...(credit > 0 ? [`   (dont ${fmtDec(credit)} de crédit prorata déduit de votre ancien contrat)`] : []),
+          ``,
+          `      • ${faciliteSeqE[0].label} le ${payDate(0)} : ${amtStr(faciliteSeqE[0])}`,
+          `      • ${faciliteSeqE[1].label} le ${payDate(1)} : ${amtStr(faciliteSeqE[1])}`,
+          ...faciliteM3lines,
+        ] : []),
+        `${'━'.repeat(45)}`,
+        ``,
+        `Cette proposition est valable jusqu'à votre échéance${form.nextBilling ? ` du ${fmtDateLong(form.nextBilling)}` : ''}.`,
+        ``,
+        `N'hésitez pas à revenir vers moi pour toute question.`,
+        ``,
+        `Cordialement,`,
+      ].join('\n');
+
+      const slack = [
+        `📋 *${needsVal ? '⚠️ Demande de validation — ' : ''}Renouvellement client*`,
+        ``,
+        `*Compte :* ${form.account}`,
+        `*Zone :* ${form.zone}`,
+        ``,
+        `*Situation actuelle*`,
+        `> Plan : ${OFFER_NAMES[form.offer]}${form.mrr ? ` | MRR : ${fmt(parseFloat(form.mrr))}/mois` : ''}`,
+        `> Health Score : ${form.healthScore}% ${hsNum <= 70 ? '⚠️ fragile' : '✅ sain'}`,
+        `> Pageviews Search : ${bandEmoji} ${BAND_META[form.band]?.label || ''}`,
+        ``,
+        `*Offre proposée*`,
+        `> Plan : *${OFFER_NAMES[offer]}* (${scenarioLabel})`,
+        ...(engLabel  ? [`> Engagement : ${engLabel}`] : []),
+        ...(payStart  ? [`> Début souscription : ${form.subStart === 'early' ? `Early renewal — ${fmtDateLong(payStart)}` : 'Au moment du renouvellement'}`] : []),
+        `> Discount upfront : ${discountValue}%${status.key === 'validate' ? ` ⚠️ (seuil autonome : ${rules?.ok}%)` : ' ✅'}`,
+        ...(payment === 'facilite' && discountFacilite > 0 ? [`> Discount facilité : ${discountFacilite}%${statusFac.key === 'validate' ? ` ⚠️` : ' ✅'}`] : []),
+        ...(credit > 0 ? [`> Crédit prorata : *− ${fmtDec(credit)}* (${prorata.consumedDays} j consommés / ${prorata.totalDays})`] : []),
+        `> Prix négocié upfront : *${fmt(negotiated)}/an*`,
+        `> Mode de paiement : ${payLabel}`,
+        `> Montant final (après crédit) : *${fmtDec(finalPrice)}/an*`,
+        ...(form.nextBilling ? [`> Échéance : ${form.nextBilling}`] : []),
+        ``,
+        needsVal
+          ? `⚠️ *Validation requise* — discount dépasse le seuil autonome. Merci de valider avant contact client. @manager`
+          : `✅ *Autonome* — dans les seuils, aucune validation requise.`,
+      ].join('\n');
+
+      const copy = (text, key) => {
+        navigator.clipboard.writeText(text).then(() => { setCopied(key); setTimeout(() => setCopied(null), 2200); });
+      };
+
+      if (demoMode) {
+        return <OfferBenefits offer={offer} />;
+      }
+
+      return (
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+            <SectionIcon color={C.purple}>✉️</SectionIcon>
+            <div>
+              <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>Supports de communication</p>
+              <p style={{ fontSize: 12, color: C.muted }}>CR manager & email client prêts à copier</p>
+            </div>
+          </div>
+
+          {needsVal && (
+            <div style={{ background: C.orangeLight, border: `1px solid #FDE68A`, borderRadius: 14, padding: '14px 18px', display: 'flex', gap: 12, marginBottom: 16 }}>
+              <span style={{ fontSize: 22, flexShrink: 0 }}>⚠️</span>
+              <div>
+                <p style={{ fontWeight: 700, color: '#92400E', fontSize: 14 }}>Validation manager requise avant contact client</p>
+                <p style={{ fontSize: 13, color: '#B45309', marginTop: 2 }}>Envoyez d'abord le CR Slack et attendez le feu vert.</p>
+              </div>
+            </div>
+          )}
+
+          {[
+            { key: 'slack', icon: '💬', label: 'CR Slack — Manager', badge: needsVal ? { t: 'Validation requise', bg: C.orangeLight, border: '#FDE68A', color: '#B45309' } : { t: 'Pour info', bg: C.greenLight, border: '#A7F3D0', color: C.green }, text: slack },
+            { key: 'email', icon: '✉️', label: 'Email client', badge: null, text: email },
+          ].map(({ key, icon, label, badge, text }) => (
+            <div key={key} style={{ background: 'white', border: `1px solid ${C.border}`, borderRadius: 16, overflow: 'hidden', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', background: '#FAFAFA', borderBottom: `1px solid ${C.border}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>{icon}</span>
+                  <span style={{ fontWeight: 700, fontSize: 14, color: C.text }}>{label}</span>
+                  {badge && <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 6, background: badge.bg, border: `1px solid ${badge.border}`, color: badge.color }}>{badge.t}</span>}
+                </div>
+                <button onClick={() => copy(text, key)} style={{
+                  fontSize: 13, fontWeight: 600, color: copied === key ? C.green : C.purple,
+                  background: copied === key ? C.greenLight : C.purpleLight,
+                  border: 'none', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', transition: 'all .15s',
+                }}>
+                  {copied === key ? '✓ Copié !' : 'Copier'}
+                </button>
+              </div>
+              <pre style={{ padding: '16px 20px', fontSize: 13, color: C.text, whiteSpace: 'pre-wrap', fontFamily: 'inherit', lineHeight: 1.65, overflowX: 'auto', margin: 0 }}>{text}</pre>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // ─── URL params (pré-remplissage Salesforce) ─────────────────────────────
+    function fromUrl() {
+      const p = new URLSearchParams(window.location.search);
+      if (![...p.keys()].length) return EMPTY_FORM;
+      const get = (k, fb) => p.has(k) ? p.get(k) : fb;
+
+      // offer : "Advanced" → "advanced", "Joy Only" → "joy-only"
+      const offerRaw = get('offer', '');
+      const offerKey = (() => {
+        const s = offerRaw.toLowerCase().replace(/\s+/g, '-');
+        return OFFER_KEYS.includes(s) ? s : EMPTY_FORM.offer;
+      })();
+
+      // band : emoji couleur dans "3 🟢" → red/green/blue
+      const pvRaw = get('privateasersearch', '');
+      const band = (pvRaw.includes('🟢') || pvRaw.includes('🟩')) ? 'green'
+                 : (pvRaw.includes('🔴') || pvRaw.includes('🟥') || pvRaw.includes('🔺')) ? 'red'
+                 : (pvRaw.includes('🔵') || pvRaw.includes('🟦') || pvRaw.includes('💙')) ? 'blue'
+                 : (pvRaw.includes('🟠') || pvRaw.includes('🟡') || pvRaw.includes('🧡') || pvRaw.includes('💛')) ? 'red'
+                 : get('band', EMPTY_FORM.band);
+
+      // engagement : "Annual" → "annual", "Monthly" → "monthly"
+      const engRaw = get('contractengagement', get('engagement', ''));
+      const engagement = engRaw.toLowerCase().startsWith('annual')  ? 'annual'
+                       : engRaw.toLowerCase().startsWith('monthly') ? 'monthly'
+                       : EMPTY_FORM.engagement;
+
+      // healthScore : extrait le dernier nombre de "3 🟢 139"
+      const hsRaw = get('healthScore', get('healthscore', ''));
+      const hsMatch = hsRaw.match(/(\d+)\s*$/);
+      const healthScore = hsMatch ? hsMatch[1] : EMPTY_FORM.healthScore;
+
+      // zone : forcer majuscule
+      const zone = get('zone', EMPTY_FORM.zone).toUpperCase().replace(/zone\s*/i, '') || EMPTY_FORM.zone;
+
+      // Nettoyer les valeurs numériques SF (1 234,56 € → 1234.56)
+      const cleanNum = s => {
+        const n = parseFloat(String(s).replace(/[^\d,.]/g, '').replace(/\s/g, '').replace(',', '.'));
+        return isNaN(n) ? '' : String(n);
+      };
+      // Normaliser les dates SF → YYYY-MM-DD (FR locale : DD/MM/YYYY)
+      const cleanDate = s => {
+        if (!s) return '';
+        s = s.trim();
+        if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+        const fr = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+        if (fr) return `${fr[3]}-${fr[2].padStart(2,'0')}-${fr[1].padStart(2,'0')}`;
+        return '';
+      };
+      const mrr = cleanNum(get('mrr', EMPTY_FORM.mrr));
+      const arr = cleanNum(get('arr', ''));
+
+      // currentDiscount auto-calculé depuis ARR vs prix catalogue, arrondi à 5%
+      const arrNum  = parseFloat(arr);
+      const catPrice = PRICING[zone]?.upfront?.[offerKey] ?? 0;
+      const roundTo5 = n => Math.round(n / 5) * 5;
+      const currentDiscount = arrNum > 0 && catPrice > 0
+        ? roundTo5(Math.max(0, Math.round((1 - arrNum / catPrice) * 100)))
+        : Number(get('currentDiscount', EMPTY_FORM.currentDiscount));
+
+      return {
+        ...EMPTY_FORM,
+        account:         get('account',      EMPTY_FORM.account),
+        ae:              get('ae',           EMPTY_FORM.ae),
+        zone,
+        offer:           offerKey,
+        arr,
+        currentDiscount,
+        mrr,
+        nextBilling:     cleanDate(get('nextBilling', EMPTY_FORM.nextBilling)),
+        engagement,
+        subStart:        get('subStart',     EMPTY_FORM.subStart),
+        subStartDate:    get('subStartDate', EMPTY_FORM.subStartDate),
+        healthScore,
+        band,
+      };
+    }
+
+    // ─── App ─────────────────────────────────────────────────────────────────
+    function App() {
+      const [form,              setForm]              = useState(fromUrl);
+      const [submitted,         setSubmitted]         = useState(false);
+      const [discounts,         setDiscounts]         = useState({});
+      const [discountsFacilite, setDiscountsFacilite] = useState({});
+      const [selectedIdx,       setSelectedIdx]       = useState(null);
+      const [selectedPayment,   setSelectedPayment]   = useState(null);
+      const [demoMode,          setDemoMode]          = useState(false);
+      const [step,              setStep]              = useState(0);
+      const [slideDir,          setSlideDir]          = useState('fwd');
+
+      const goTo = (target) => {
+        setSlideDir(target > step ? 'fwd' : 'back');
+        setStep(target);
+      };
+
+      const resetDownstream = () => {
+        setSubmitted(false); setSelectedIdx(null); setSelectedPayment(null);
+        setDiscounts({}); setDiscountsFacilite({}); setStep(0);
+      };
+
+      const onChange = (key, val) => {
+        setForm(f => {
+          const next = { ...f, [key]: val };
+          if (key === 'arr' || key === 'offer' || key === 'zone') {
+            const arrNum  = parseFloat(String(key === 'arr' ? val : next.arr).replace(',', '.'));
+            const catPrice = PRICING[next.zone]?.upfront?.[next.offer] ?? 0;
+            if (arrNum > 0 && catPrice > 0)
+              next.currentDiscount = Math.round(Math.max(0, Math.round((1 - arrNum / catPrice) * 100)) / 5) * 5;
+          }
+          return next;
+        });
+        if (['offer', 'healthScore', 'band', 'zone'].includes(key)) resetDownstream();
+      };
+
+      const onSubmit = () => {
+        setSelectedIdx(null); setSelectedPayment(null);
+        setDiscounts({}); setDiscountsFacilite({});
+        setSubmitted(true);
+        goTo(1);
+      };
+
+      const hsNum    = parseInt(form.healthScore);
+      const scenarios = useMemo(
+        () => submitted ? computeScenarios(hsNum, form.band, form.offer) : [],
+        [submitted, hsNum, form.band, form.offer]
+      );
+      const prorata = useMemo(
+        () => computeProrata(form),
+        [form.subStart, form.subStartDate, form.nextBilling, form.mrr]
+      );
+
+      const handleDiscount = (idx, val) => {
+        setDiscounts(p => ({ ...p, [idx]: val }));
+        if (selectedIdx === idx) setSelectedPayment(null);
+      };
+      const handleDiscountFacilite = (val) => {
+        setDiscountsFacilite(p => ({ ...p, [selectedIdx]: val }));
+      };
+      const handleSelect = idx => {
+        setSelectedIdx(idx); setSelectedPayment(null); goTo(2);
+      };
+      const handlePaymentSelect = (mode) => {
+        setSelectedPayment(mode); goTo(3);
+      };
+
+      const payStart = (form.subStart === 'early' && form.subStartDate) ? form.subStartDate
+                     : form.nextBilling || '';
+
+      const selectedScenario       = selectedIdx !== null ? scenarios[selectedIdx] : null;
+      const selectedDiscount       = selectedIdx !== null ? (discounts[selectedIdx] ?? 0) : 0;
+      const selectedDiscountFac    = selectedIdx !== null ? (discountsFacilite[selectedIdx] ?? 0) : 0;
+      const bm                     = BAND_META[form.band];
+      const colCls = { 1: '1fr', 2: '1fr 1fr', 3: '1fr 1fr 1fr', 4: '1fr 1fr' }[scenarios.length] ?? '1fr 1fr 1fr';
+
+      const BackButton = ({ to, label = 'Retour' }) => (
+        <button onClick={() => goTo(to)} style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          background: 'white', border: `1.5px solid ${C.border}`,
+          borderRadius: 12, cursor: 'pointer',
+          fontSize: 14, fontWeight: 700, color: C.text,
+          padding: '10px 18px', marginBottom: 8,
+          boxShadow: '0 1px 4px rgba(0,0,0,.06)',
+          transition: 'box-shadow .15s, border-color .15s',
+        }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = C.purple; e.currentTarget.style.color = C.purple; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.text; }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5M12 5l-7 7 7 7"/>
+          </svg>
+          {label}
+        </button>
+      );
+
+      return (
+        <div style={{ minHeight: '100vh', background: C.bg }}>
+
+          {/* Header */}
+          <div style={{ background: 'white', borderBottom: `1px solid ${C.border}`, padding: '0 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 60, position: 'sticky', top: 0, zIndex: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: C.purpleLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🔄</div>
+              <div>
+                <p style={{ fontWeight: 800, fontSize: 15, color: C.text, lineHeight: 1.2 }}>Simulateur Renewal</p>
+                <p style={{ fontSize: 11, color: C.muted }}>
+                  {!demoMode && step === 0 && 'Informations client'}
+                  {!demoMode && step === 1 && 'Recommandations d\'offre'}
+                  {!demoMode && step === 2 && 'Mode de paiement'}
+                  {!demoMode && step === 3 && 'Résumé'}
+                  {demoMode && 'Mode Démo'}
+                </p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: demoMode ? 700 : 400, color: demoMode ? C.purple : C.muted, transition: 'color .3s' }}>Mode Démo</span>
+              <Toggle value={demoMode} onChange={setDemoMode} />
+            </div>
+          </div>
+
+          {/* Contenu principal */}
+          {demoMode ? (
+            /* ── Mode Démo : pas de navigation par étapes ── */
+            <div style={{ maxWidth: '100%', margin: '0 auto', padding: '32px 48px', display: 'flex', flexDirection: 'column', gap: 24, fontSize: '112%' }}>
+              {selectedScenario && (
+                <Card style={{ padding: 40 }}>
+                  <PaymentSection
+                    scenario={selectedScenario} discountValue={selectedDiscount}
+                    discountFacilite={selectedDiscountFac} onDiscountFaciliteChange={handleDiscountFacilite}
+                    zone={form.zone} selectedPayment={selectedPayment} onPaymentSelect={handlePaymentSelect}
+                    prorata={prorata} demoMode={true} startDate={payStart}
+                  />
+                </Card>
+              )}
+              {selectedScenario && selectedPayment && (
+                <Card style={{ padding: 40 }}>
+                  <OutputSection form={form} scenario={selectedScenario} discountValue={selectedDiscount}
+                    discountFacilite={selectedDiscountFac} payment={selectedPayment} prorata={prorata} demoMode={true} />
+                </Card>
+              )}
+            </div>
+          ) : (
+            /* ── Mode normal : navigation par étapes avec slide ── */
+            <div key={step} className={`page-${slideDir}`} style={{
+              maxWidth: 1100, margin: '0 auto', padding: '32px 24px',
+              display: 'flex', flexDirection: 'column', gap: 24,
+            }}>
+
+              {/* Étape 0 — Formulaire */}
+              {step === 0 && (
+                <>
+                  {[...new URLSearchParams(window.location.search).keys()].length > 0 && (
+                    <div style={{ background: C.purpleLight, border: `1px solid ${C.purpleMid}`, borderRadius: 12, padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontSize: 16 }}>⚡</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: C.purple }}>Données pré-remplies depuis Salesforce — vérifiez et complétez si besoin.</span>
+                    </div>
+                  )}
+                  <ClientForm form={form} onChange={onChange} onSubmit={onSubmit} />
+                </>
+              )}
+
+              {/* Étape 1 — Recommandations */}
+              {step === 1 && scenarios.length > 0 && (
+                <>
+                <BackButton to={0} label="Modifier le profil client" />
+                <Card style={{ padding: 28 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+                    <SectionIcon color={C.coral}>🎯</SectionIcon>
+                    <div>
+                      <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>Recommandations d'offre</p>
+                      <p style={{ fontSize: 12, color: C.muted }}>Basées sur l'algorithme Health Score × Pageviews Search</p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+                    {[
+                      { label: `Health Score ${hsNum}% — ${hsNum <= 70 ? 'Fragile' : 'Sain'}`, bg: hsNum <= 70 ? C.coralLight : C.greenLight, color: hsNum <= 70 ? C.coral : C.green, border: hsNum <= 70 ? C.coralMid : '#A7F3D0' },
+                      bm && { label: `${bm.emoji} ${bm.label}`, bg: C.purpleLight, color: C.purple, border: C.purpleMid },
+                    ].filter(Boolean).map((p, i) => (
+                      <span key={i} style={{ fontSize: 12, fontWeight: 600, padding: '5px 12px', borderRadius: 20, background: p.bg, color: p.color, border: `1px solid ${p.border}` }}>{p.label}</span>
+                    ))}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: colCls, gap: 16 }}>
+                    {scenarios.map((s, i) => (
+                      <ScenarioCard key={`${s.offer}-${i}`} scenario={s}
+                        discount={discounts[i] ?? 0} onDiscountChange={val => handleDiscount(i, val)}
+                        zone={form.zone} isSelected={selectedIdx === i} onSelect={handleSelect} />
+                    ))}
+                  </div>
+                </Card>
+                </>
+              )}
+
+              {/* Étape 2 — Échéancier */}
+              {step === 2 && selectedScenario && (
+                <>
+                <BackButton to={1} label="Retour aux offres" />
+                <Card style={{ padding: 28 }}>
+                  <PaymentSection
+                    scenario={selectedScenario} discountValue={selectedDiscount}
+                    discountFacilite={selectedDiscountFac} onDiscountFaciliteChange={handleDiscountFacilite}
+                    zone={form.zone} selectedPayment={selectedPayment} onPaymentSelect={handlePaymentSelect}
+                    prorata={prorata} demoMode={false} startDate={payStart}
+                  />
+                </Card>
+                </>
+              )}
+
+              {/* Étape 3 — Résumé */}
+              {step === 3 && selectedScenario && selectedPayment && (
+                <>
+                <BackButton to={2} label="Retour à l'échéancier" />
+                <Card style={{ padding: 28 }}>
+                  <OutputSection form={form} scenario={selectedScenario} discountValue={selectedDiscount}
+                    discountFacilite={selectedDiscountFac} payment={selectedPayment} prorata={prorata} demoMode={false} />
+                </Card>
+                </>
+              )}
+
+              <p style={{ textAlign: 'center', fontSize: 11, color: C.label, paddingBottom: 16 }}>Simulateur Renewal Joy · {new Date().getFullYear()}</p>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
