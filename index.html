@@ -27,13 +27,16 @@
     @keyframes slideFromLeft  { from { transform: translateX(-40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     .page-fwd  { animation: slideFromRight 0.28s cubic-bezier(0.4,0,0.2,1) both; }
     .page-back { animation: slideFromLeft  0.28s cubic-bezier(0.4,0,0.2,1) both; }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body class="min-h-screen">
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useMemo, useEffect } = React;
+    const { useState, useMemo, useEffect, useRef } = React;
+
+    const API_BASE = 'https://sparkling-muffin-c95e17.netlify.app/.netlify/functions';
 
     // ─── Palette ──────────────────────────────────────────────────────────────
     const C = {
@@ -985,6 +988,174 @@
       );
     }
 
+    // ─── Bloc IA ─────────────────────────────────────────────────────────────
+    function AIInsightBlock({ form, scenario, discountValue, payment, prorata }) {
+      const [status, setStatus]           = useState('idle'); // idle | loading | done | error
+      const [reco, setReco]               = useState(null);
+      const [saveStatus, setSaveStatus]   = useState('idle'); // idle | saving | saved | error
+      const [casExemplaire, setCasExemplaire] = useState(false);
+
+      const PAGEVIEWS_MAP = { red: '🔴 0-100%', green: '🟢 100-200%', blue: '🔵 +200%' };
+
+      const getRecommendation = async () => {
+        setStatus('loading'); setReco(null);
+        try {
+          const r = await fetch(`${API_BASE}/recommend`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              account:          form.account || '',
+              zone:             form.zone === 'A' ? 'Zone A (Paris)' : 'Zone B (reste France)',
+              currentOffer:     OFFER_NAMES[form.offer] || form.offer,
+              arr:              form.arr || 0,
+              mrr:              form.mrr || 0,
+              currentDiscount:  form.currentDiscount || 0,
+              healthScore:      form.healthScore || 0,
+              pageviews:        PAGEVIEWS_MAP[form.band] || '',
+              nextBilling:      form.nextBilling || '',
+              contractEngagement: form.engagement || '',
+            }),
+          });
+          const data = await r.json();
+          setReco(data); setStatus('done');
+        } catch { setStatus('error'); }
+      };
+
+      const saveCase = async () => {
+        setSaveStatus('saving');
+        const echeancierText = payment === 'upfront' ? 'Annuel upfront' : 'Annuel facilité 12×';
+        try {
+          const r = await fetch(`${API_BASE}/save-case`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              account:          form.account || '',
+              zone:             form.zone === 'A' ? 'Zone A (Paris)' : 'Zone B (reste France)',
+              currentOffer:     OFFER_NAMES[form.offer] || form.offer,
+              arr:              form.arr || 0,
+              mrr:              form.mrr || 0,
+              currentDiscount:  form.currentDiscount || 0,
+              nextBilling:      form.nextBilling || '',
+              contractEngagement: form.engagement || '',
+              healthScore:      form.healthScore || 0,
+              pageviews:        PAGEVIEWS_MAP[form.band] || '',
+              renewalDate:      form.nextBilling || '',
+              proposedOffer:    OFFER_NAMES[scenario.offer] || scenario.offer,
+              proposedDiscount: discountValue,
+              echeancier:       echeancierText,
+              argument:         reco?.argumentPrincipal || '',
+              retourClient:     '',
+              casExemplaire,
+            }),
+          });
+          const data = await r.json();
+          setSaveStatus(data.success ? 'saved' : 'error');
+        } catch { setSaveStatus('error'); }
+      };
+
+      const validationColor = { autonome: C.green, manager: C.orange, interdit: C.red };
+      const validationLabel = { autonome: '✅ Autonome', manager: '⚠️ Validation manager', interdit: '🚫 Interdit' };
+
+      return (
+        <div style={{ background: C.purpleLight, border: `1.5px solid ${C.purpleMid}`, borderRadius: 16, padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 22 }}>🤖</span>
+            <div>
+              <p style={{ fontWeight: 800, fontSize: 15, color: C.purple }}>Insight IA</p>
+              <p style={{ fontSize: 12, color: C.muted }}>Recommandation basée sur la Knowledge Base + cas passés</p>
+            </div>
+          </div>
+
+          {status === 'idle' && (
+            <button onClick={getRecommendation} style={{ alignSelf: 'flex-start', background: C.purple, color: 'white', border: 'none', borderRadius: 10, padding: '10px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+              Obtenir une recommandation IA
+            </button>
+          )}
+
+          {status === 'loading' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: C.muted, fontSize: 14 }}>
+              <div style={{ width: 18, height: 18, border: `2px solid ${C.purpleMid}`, borderTopColor: C.purple, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              Analyse en cours…
+            </div>
+          )}
+
+          {status === 'error' && (
+            <p style={{ color: C.red, fontSize: 13 }}>Erreur lors de l'appel IA. Réessaie dans quelques secondes.</p>
+          )}
+
+          {status === 'done' && reco && !reco.error && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+              {/* Offre + discount */}
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ background: 'white', borderRadius: 10, padding: '10px 16px', flex: 1 }}>
+                  <p style={{ fontSize: 11, color: C.muted, fontWeight: 600, marginBottom: 2 }}>OFFRE RECOMMANDÉE</p>
+                  <p style={{ fontSize: 16, fontWeight: 800, color: C.text }}>{reco.offreRecommandee}</p>
+                </div>
+                <div style={{ background: 'white', borderRadius: 10, padding: '10px 16px', flex: 1 }}>
+                  <p style={{ fontSize: 11, color: C.muted, fontWeight: 600, marginBottom: 2 }}>DISCOUNT SUGGÉRÉ</p>
+                  <p style={{ fontSize: 16, fontWeight: 800, color: C.text }}>{reco.discountSuggere}%</p>
+                </div>
+                <div style={{ background: 'white', borderRadius: 10, padding: '10px 16px', flex: 1 }}>
+                  <p style={{ fontSize: 11, color: C.muted, fontWeight: 600, marginBottom: 2 }}>VALIDATION</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: validationColor[reco.niveauValidation] || C.text }}>{validationLabel[reco.niveauValidation] || reco.niveauValidation}</p>
+                </div>
+              </div>
+
+              {/* Argument principal */}
+              <div style={{ background: 'white', borderRadius: 10, padding: '12px 16px' }}>
+                <p style={{ fontSize: 11, color: C.muted, fontWeight: 600, marginBottom: 6 }}>ARGUMENT PRINCIPAL</p>
+                <p style={{ fontSize: 14, color: C.text, lineHeight: 1.5 }}>{reco.argumentPrincipal}</p>
+              </div>
+
+              {/* Pourquoi */}
+              <div style={{ background: 'white', borderRadius: 10, padding: '12px 16px' }}>
+                <p style={{ fontSize: 11, color: C.muted, fontWeight: 600, marginBottom: 6 }}>POURQUOI CETTE RECOMMANDATION</p>
+                <p style={{ fontSize: 13, color: C.text, lineHeight: 1.6 }}>{reco.why}</p>
+              </div>
+
+              {/* Objections */}
+              {reco.objectionsProbables?.length > 0 && (
+                <div style={{ background: 'white', borderRadius: 10, padding: '12px 16px' }}>
+                  <p style={{ fontSize: 11, color: C.muted, fontWeight: 600, marginBottom: 8 }}>OBJECTIONS PROBABLES</p>
+                  {reco.objectionsProbables.map((o, i) => (
+                    <p key={i} style={{ fontSize: 13, color: C.text, marginBottom: 4 }}>• {o}</p>
+                  ))}
+                </div>
+              )}
+
+              {/* Alertes */}
+              {reco.alertes?.length > 0 && (
+                <div style={{ background: C.orangeLight, borderRadius: 10, padding: '12px 16px' }}>
+                  {reco.alertes.map((a, i) => (
+                    <p key={i} style={{ fontSize: 13, color: C.orange, fontWeight: 600 }}>⚠️ {a}</p>
+                  ))}
+                </div>
+              )}
+
+              {/* Sauvegarder */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 4 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: C.muted, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={casExemplaire} onChange={e => setCasExemplaire(e.target.checked)} style={{ accentColor: C.purple }} />
+                  Marquer comme cas exemplaire ⭐
+                </label>
+                <button
+                  onClick={saveCase}
+                  disabled={saveStatus === 'saving' || saveStatus === 'saved'}
+                  style={{ background: saveStatus === 'saved' ? C.green : C.text, color: 'white', border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13, cursor: saveStatus === 'saved' ? 'default' : 'pointer', opacity: saveStatus === 'saving' ? 0.7 : 1 }}
+                >
+                  {saveStatus === 'idle'   && '💾 Sauvegarder ce cas dans la BDD'}
+                  {saveStatus === 'saving' && 'Sauvegarde…'}
+                  {saveStatus === 'saved'  && '✅ Cas sauvegardé !'}
+                  {saveStatus === 'error'  && '❌ Erreur — réessayer'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
     // ─── Étape 4 : Output ────────────────────────────────────────────────────
     function OutputSection({ form, scenario, discountValue, discountFacilite, payment, prorata, demoMode }) {
       const [copied, setCopied] = useState(null);
@@ -1496,6 +1667,7 @@
                   <OutputSection form={form} scenario={selectedScenario} discountValue={selectedDiscount}
                     discountFacilite={selectedDiscountFac} payment={selectedPayment} prorata={prorata} demoMode={false} />
                 </Card>
+                <AIInsightBlock form={form} scenario={selectedScenario} discountValue={selectedDiscount} payment={selectedPayment} prorata={prorata} />
                 </>
               )}
 
