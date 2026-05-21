@@ -413,16 +413,20 @@
                 />
               </div>
 
-              <div style={{ gridColumn: '1 / -1' }}>
-                <Label>Type de négociation</Label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 2 }}>
+              <div style={{ gridColumn: '1 / -1', background: C.coralLight, border: `1.5px solid ${C.coralMid}`, borderRadius: 14, padding: '14px 16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                  <span style={{ fontSize: 15 }}>🎯</span>
+                  <Label style={{ margin: 0, color: C.coral, fontWeight: 700 }}>Type de négociation</Label>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {NEG_TYPES.map(t => (
                     <button key={t} onClick={() => onChange('negType', form.negType === t ? '' : t)} style={{
-                      padding: '7px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600,
-                      border: `1.5px solid ${form.negType === t ? C.purple : C.border}`,
-                      background: form.negType === t ? C.purpleLight : 'white',
-                      color: form.negType === t ? C.purple : C.muted,
+                      padding: '8px 16px', borderRadius: 20, fontSize: 13, fontWeight: 600,
+                      border: `1.5px solid ${form.negType === t ? C.coral : '#F9C4B4'}`,
+                      background: form.negType === t ? C.coral : 'white',
+                      color: form.negType === t ? 'white' : C.coral,
                       cursor: 'pointer', transition: 'all .15s',
+                      boxShadow: form.negType === t ? '0 2px 8px rgba(240,122,90,.3)' : 'none',
                     }}>{t}</button>
                   ))}
                 </div>
@@ -1641,9 +1645,6 @@
               <Toggle value={demoMode} onChange={setDemoMode} />
             </div>
           </div>
-
-          {/* DEBUG temporaire — à supprimer */}
-          {form.oppId && <div style={{ background: '#FEF9C3', padding: '4px 16px', fontSize: 11, color: '#92400E' }}>DEBUG oppId: {form.oppId}</div>}
 
           {/* Contenu principal */}
           {demoMode ? (
