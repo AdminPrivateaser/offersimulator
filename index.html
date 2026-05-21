@@ -652,7 +652,7 @@
     }
 
     // ─── Étape 3 : Paiement ───────────────────────────────────────────────────
-    function PaymentSection({ scenario, discountValue, discountFacilite, onDiscountFaciliteChange, zone, selectedPayment, onPaymentSelect, prorata, demoMode, startDate }) {
+    function PaymentSection({ scenario, discountValue, onDiscountChange, discountFacilite, onDiscountFaciliteChange, zone, selectedPayment, onPaymentSelect, prorata, demoMode, startDate }) {
       const [upfrontTimes, setUpfrontTimes] = useState(1);
       const [demoShowInstallments, setDemoShowInstallments] = useState(false);
       const [demoShowFacilite,     setDemoShowFacilite]     = useState(false);
@@ -670,7 +670,7 @@
       const negotiated     = catalog * (1 - discountValue / 100);
       const facilite       = PRICING[zone]?.facilite?.[offer] ?? 0;
       const faciliteNet    = facilite * (1 - discountFacilite / 100);
-      const canFacilite    = offer !== 'basic';
+      const canFacilite    = true;
 
       // Crédit prorata — application séquentielle
       const credit  = prorata?.creditValue ?? 0;
@@ -793,6 +793,13 @@
                   <p style={{ fontSize: 32, fontWeight: 900, color: C.purple }}>{fmtDec(negotiated)} HT</p>
                   {discountValue > 0 && <p style={{ fontSize: 12, color: C.coral, textDecoration: 'line-through', marginTop: 2 }}>Prix catalogue : {fmt(catalog)}</p>}
                 </>
+              )}
+
+              {/* Discount upfront modifiable */}
+              {!demoMode && onDiscountChange && (
+                <div style={{ marginTop: 12 }} onClick={e => e.stopPropagation()}>
+                  <DiscountSlider discount={discountValue} rules={rules} notRecommended={notRecommended} onDiscountChange={onDiscountChange} />
+                </div>
               )}
 
               {/* Onglets 1× / 2× / 3× — masqués en phase 1 démo */}
@@ -1059,7 +1066,7 @@
       const upfrontFinal   = Math.max(0, negotiated - credit);
       const faciliteFinal  = Math.max(0, faciliteNet - credit);
       const finalPrice     = payment === 'upfront' ? upfrontFinal : faciliteFinal;
-      const canFacilite    = offer !== 'basic';
+      const canFacilite    = true;
       const status         = discountStatus(discountValue, rules, notRecommended);
       const statusFac      = discountStatus(discountFacilite, rules, notRecommended);
       const needsVal       = status.key === 'validate' || (payment === 'facilite' && statusFac.key === 'validate');
@@ -1637,6 +1644,10 @@
                 <Card style={{ padding: 28 }}>
                   <PaymentSection
                     scenario={selectedScenario} discountValue={selectedDiscount}
+                    onDiscountChange={val => {
+                      if (selectedIdx === -1) setCustomDiscount(val);
+                      else { setDiscounts(p => ({ ...p, [selectedIdx]: val })); setSelectedPayment(null); }
+                    }}
                     discountFacilite={selectedDiscountFac} onDiscountFaciliteChange={handleDiscountFacilite}
                     zone={form.zone} selectedPayment={selectedPayment} onPaymentSelect={handlePaymentSelect}
                     prorata={prorata} demoMode={false} startDate={payStart}
