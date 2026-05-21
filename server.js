@@ -203,13 +203,12 @@ app.post('/save-case', async (req, res) => {
 });
 
 app.post('/send-slack', async (req, res) => {
-  const { text, account, am } = req.body;
   const webhookUrl = process.env.ZAPIER_WEBHOOK_THREAD;
   if (!webhookUrl) return res.status(500).json({ error: 'ZAPIER_WEBHOOK_THREAD not configured' });
   const r = await fetch(webhookUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, account, am }),
+    body: JSON.stringify(req.body),
   });
   res.json({ success: r.ok });
 });
