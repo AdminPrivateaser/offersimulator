@@ -369,8 +369,12 @@
     // ─── Étape 1 : Formulaire ─────────────────────────────────────────────────
     const SF_BASE_URL = 'https://joy2.lightning.force.com';
 
+    const NEG_TYPES = [
+      'Renouvellement', 'Incoming Churn', 'Up-sell', 'Down-sell', 'First Contact',
+    ];
+
     const EMPTY_FORM = {
-      account: '', ae: '', oppId: '', zone: 'A', offer: 'advanced',
+      account: '', ae: '', oppId: '', negType: '', zone: 'A', offer: 'advanced',
       arr: '', currentDiscount: 0,
       engagement: '', mrr: '', nextBilling: '',
       healthScore: '', band: null,
@@ -407,6 +411,21 @@
                   onChange={e => onChange('ae', e.target.value)}
                   title={amMapping[form.ae] ? `ID Salesforce : ${form.ae}` : undefined}
                 />
+              </div>
+
+              <div style={{ gridColumn: '1 / -1' }}>
+                <Label>Type de négociation</Label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 2 }}>
+                  {NEG_TYPES.map(t => (
+                    <button key={t} onClick={() => onChange('negType', form.negType === t ? '' : t)} style={{
+                      padding: '7px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600,
+                      border: `1.5px solid ${form.negType === t ? C.purple : C.border}`,
+                      background: form.negType === t ? C.purpleLight : 'white',
+                      color: form.negType === t ? C.purple : C.muted,
+                      cursor: 'pointer', transition: 'all .15s',
+                    }}>{t}</button>
+                  ))}
+                </div>
               </div>
 
               <div>
@@ -1206,6 +1225,7 @@
         `📋 *${needsVal ? '⚠️ Demande de validation — ' : ''}Renouvellement client*`,
         ``,
         `*Compte :* ${form.account}`,
+        ...(form.negType ? [`*Type :* ${form.negType}`] : []),
         `*Zone :* ${form.zone}`,
         ``,
         `*Situation actuelle*`,
@@ -1250,6 +1270,7 @@
               text: slackText,
               account: form.account,
               am: amName,
+              negType: form.negType || '',
               needsValidation: needsVal,
               oppId: form.oppId || '',
               oppUrl: form.oppId ? `${SF_BASE_URL}/lightning/r/Opportunity/${form.oppId}/view` : '',
