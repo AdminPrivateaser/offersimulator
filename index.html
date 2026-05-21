@@ -1251,6 +1251,7 @@
               account: form.account,
               am: amName,
               needsValidation: needsVal,
+              oppId: form.oppId || '',
               oppUrl: form.oppId ? `${SF_BASE_URL}/lightning/r/Opportunity/${form.oppId}/view` : '',
             }),
           });
