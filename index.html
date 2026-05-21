@@ -1224,7 +1224,7 @@
         ...(form.nextBilling ? [`> Échéance : ${form.nextBilling}`] : []),
         ``,
         needsVal
-          ? `⚠️ *Validation requise* — ${scenario.isCustom ? 'offre saisie manuellement (hors algo)' : scenario.notRecommended ? 'offre hors recommandation' : 'discount dépasse le seuil autonome'}. Merci de valider avant contact client. @manager`
+          ? `⚠️ *Validation requise* — ${scenario.isCustom ? 'offre saisie manuellement (hors algo)' : scenario.notRecommended ? 'offre hors recommandation' : 'discount dépasse le seuil autonome'}. Merci de valider avant contact client.`
           : `✅ *Autonome* — dans les seuils, aucune validation requise.`,
       ].join('\n');
 
