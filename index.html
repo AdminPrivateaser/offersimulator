@@ -188,10 +188,10 @@
     }
 
     function discountStatus(discount, rules, notRecommended) {
-      if (notRecommended || !rules) return { key: 'nr',        label: 'Non recommandé',              color: 'gray'   };
-      if (discount > rules.validate)  return { key: 'forbidden', label: 'Interdit',                  color: 'red'    };
-      if (discount >= rules.ok)       return { key: 'validate',  label: 'Validation manager requise', color: 'orange' };
-      return                                 { key: 'ok',        label: 'Dans les seuils autonomes',  color: 'green'  };
+      if (notRecommended || !rules) return { key: 'nr',      label: 'Non recommandé',                    color: 'gray'   };
+      if (discount > rules.validate) return { key: 'manager', label: 'Validation manager obligatoire',   color: 'red'    };
+      if (discount >= rules.ok)      return { key: 'validate', label: 'À valider — reste vigilant',      color: 'orange' };
+      return                                { key: 'ok',       label: 'Dans les seuils autonomes',       color: 'green'  };
     }
 
     const fmt    = n => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
@@ -330,15 +330,15 @@
     // ─── Discount Slider ──────────────────────────────────────────────────────
     function DiscountSlider({ discount, rules, notRecommended, onDiscountChange, freeMode }) {
       if (!freeMode && (notRecommended || !rules)) return null;
-      const FREE_MAX  = 60;
-      const sliderMax = freeMode ? FREE_MAX : rules.validate;
+      const HARD_MAX  = 80;
+      const sliderMax = HARD_MAX;
       const status    = freeMode ? null : discountStatus(discount, rules, notRecommended);
-      const trackClr  = !status ? C.purple
-                      : status.color === 'green' ? C.green
+      const trackClr  = !status        ? C.purple
+                      : status.color === 'green'  ? C.green
                       : status.color === 'orange' ? C.orange : C.red;
-      const pct       = sliderMax > 0 ? (discount / sliderMax) * 100 : 0;
+      const pct = (discount / sliderMax) * 100;
       const trackStyle = {
-        background: sliderMax > 0 ? `linear-gradient(to right, ${trackClr} ${pct}%, #E5E7EB ${pct}%)` : '#E5E7EB',
+        background: `linear-gradient(to right, ${trackClr} ${pct}%, #E5E7EB ${pct}%)`,
       };
       return (
         <div style={{ marginBottom: 14 }}>
@@ -349,11 +349,19 @@
           <input type="range" min={0} max={sliderMax} step={5} value={discount}
             onChange={e => onDiscountChange(Number(e.target.value))}
             style={{ ...trackStyle, width: '100%', cursor: 'pointer' }} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-            <span style={{ fontSize: 10, color: C.label }}>0%</span>
-            {!freeMode && <span style={{ fontSize: 10, color: C.green, fontWeight: 700 }}>{rules.ok}%</span>}
-            <span style={{ fontSize: 10, color: freeMode ? C.label : C.orange, fontWeight: 500 }}>Max {sliderMax}%</span>
-          </div>
+          {!freeMode ? (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+              <span style={{ fontSize: 10, color: C.label }}>0%</span>
+              <span style={{ fontSize: 10, color: C.green, fontWeight: 700 }}>✓ {rules.ok}%</span>
+              <span style={{ fontSize: 10, color: C.orange, fontWeight: 600 }}>⚠ {rules.validate}%</span>
+              <span style={{ fontSize: 10, color: C.red, fontWeight: 600 }}>🔴 {sliderMax}%</span>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+              <span style={{ fontSize: 10, color: C.label }}>0%</span>
+              <span style={{ fontSize: 10, color: C.label }}>Max {sliderMax}%</span>
+            </div>
+          )}
         </div>
       );
     }
@@ -655,8 +663,7 @@
     }
 
     // ─── Étape 3 : Paiement ───────────────────────────────────────────────────
-    function PaymentSection({ scenario, discountValue, onDiscountChange, discountFacilite, onDiscountFaciliteChange, zone, selectedPayment, onPaymentSelect, prorata, demoMode, startDate }) {
-      const [upfrontTimes, setUpfrontTimes] = useState(1);
+    function PaymentSection({ scenario, discountValue, onDiscountChange, discountFacilite, onDiscountFaciliteChange, zone, selectedPayment, onPaymentSelect, prorata, demoMode, startDate, upfrontTimes, setUpfrontTimes }) {
       const [demoShowInstallments, setDemoShowInstallments] = useState(false);
       const [demoShowFacilite,     setDemoShowFacilite]     = useState(false);
 
@@ -1056,7 +1063,7 @@
     }
 
     // ─── Étape 4 : Output ────────────────────────────────────────────────────
-    function OutputSection({ form, scenario, discountValue, discountFacilite, payment, prorata, demoMode }) {
+    function OutputSection({ form, scenario, discountValue, discountFacilite, payment, prorata, demoMode, upfrontTimes = 1 }) {
       const [copied, setCopied] = useState(null);
       const [editedSlack, setEditedSlack] = useState(null);
       const [editedEmail, setEditedEmail] = useState(null);
@@ -1072,7 +1079,7 @@
       const canFacilite    = true;
       const status         = discountStatus(discountValue, rules, notRecommended);
       const statusFac      = discountStatus(discountFacilite, rules, notRecommended);
-      const needsVal       = status.key === 'validate' || (payment === 'facilite' && statusFac.key === 'validate');
+      const needsVal       = ['validate', 'manager'].includes(status.key) || (payment === 'facilite' && ['validate', 'manager'].includes(statusFac.key));
       const payLabel       = payment === 'upfront' ? 'Annuel upfront' : 'Annuel facilité 12×';
       const bandEmoji      = BAND_META[form.band]?.emoji || '';
       const hsNum          = parseInt(form.healthScore);
@@ -1139,14 +1146,27 @@
         ? [`      • Puis 10 mensualités de ${fmtDec(m3net)} HT (6%) à partir du ${payDate(2)}`]
         : faciliteSeqE.slice(2).map((m, i) => `      • Mois ${i+3} (6%) le ${payDate(i+2)} : ${amtStr(m)}`);
 
-      const newOfferUpfront  = discountValue > 0
-        ? `${OFFER_NAMES[offer]} ${fmtDec(negotiated)} HT, remise ${discountValue}%`
-        : `${OFFER_NAMES[offer]} ${fmt(catalog)} HT, sans remise`;
-      const newOfferFacilite = canFacilite
+      const chosenOfferStr = payment === 'facilite'
         ? (discountFacilite > 0
-          ? ` OU ${OFFER_NAMES[offer]} paiement facilité à ${fmtDec(faciliteNet)} HT, remise ${discountFacilite}%`
-          : ` OU ${OFFER_NAMES[offer]} paiement facilité à ${fmt(facilite)} HT, sans remise`)
-        : '';
+            ? `${OFFER_NAMES[offer]} paiement facilité — ${fmtDec(faciliteNet)} HT, remise ${discountFacilite}%`
+            : `${OFFER_NAMES[offer]} paiement facilité — ${fmt(facilite)} HT, sans remise`)
+        : (discountValue > 0
+            ? `${OFFER_NAMES[offer]} paiement ${upfrontTimes > 1 ? `en ${upfrontTimes} fois` : 'annuel'} — ${fmtDec(negotiated)} HT, remise ${discountValue}%`
+            : `${OFFER_NAMES[offer]} paiement ${upfrontTimes > 1 ? `en ${upfrontTimes} fois` : 'annuel'} — ${fmt(catalog)} HT, sans remise`);
+
+      const emailPaymentBlock = payment === 'facilite' ? [
+        `🗓️ Paiement facilité en 12 fois`,
+        ...(credit > 0 ? [`   (crédit prorata de ${fmtDec(credit)} déduit)`] : []),
+        ``,
+        `      • ${faciliteSeqE[0].label} le ${payDate(0)} : ${amtStr(faciliteSeqE[0])}`,
+        `      • ${faciliteSeqE[1].label} le ${payDate(1)} : ${amtStr(faciliteSeqE[1])}`,
+        ...faciliteM3lines,
+      ] : [
+        `💳 Paiement ${upfrontTimes === 1 ? 'annuel en 1 fois' : `en ${upfrontTimes} fois`}`,
+        ...(credit > 0 ? [`   (crédit prorata de ${fmtDec(credit)} déduit)`] : []),
+        ``,
+        ...upfrontSeq(upfrontTimes).map((v, i) => installLine(v, i, upfrontTimes)),
+      ];
 
       const email = [
         `Objet : Proposition de renouvellement — ${form.account}`,
@@ -1157,33 +1177,11 @@
         ``,
         `Abonnement actuel : ${OFFER_NAMES[form.offer]} - ${currentPriceStr}, renouvellement initial prévu le ${fmtDateLong(form.nextBilling)}.`,
         ``,
-        `Nouvelle offre : ${newOfferUpfront}${newOfferFacilite}.`,
+        `Nouvelle offre : ${chosenOfferStr}.`,
         ...(payStart ? [`Cette nouvelle offre débuterait à partir du ${fmtDateLong(payStart)} pour un engagement d'un an.`] : []),
         ``,
         `${'━'.repeat(45)}`,
-        `💳 OPTION 1 — Paiement classique`,
-        `   Montant total à payer : ${fmtDec(upfrontFinal)} HT`,
-        ...(credit > 0 ? [`   (dont ${fmtDec(credit)} de crédit prorata déduit de votre ancien contrat)`] : []),
-        ``,
-        `   ▸ En 1 fois :`,
-        ...upfrontSeq(1).map((v, i) => installLine(v, i, 1)),
-        ``,
-        `   ▸ En 2 fois :`,
-        ...upfrontSeq(2).map((v, i) => installLine(v, i, 2)),
-        ``,
-        `   ▸ En 3 fois :`,
-        ...upfrontSeq(3).map((v, i) => installLine(v, i, 3)),
-        ...(canFacilite ? [
-          ``,
-          `${'━'.repeat(45)}`,
-          `🗓️ OPTION 2 — Paiement facilité en 12 fois`,
-          `   Montant total à payer : ${fmtDec(faciliteFinal)} HT`,
-          ...(credit > 0 ? [`   (dont ${fmtDec(credit)} de crédit prorata déduit de votre ancien contrat)`] : []),
-          ``,
-          `      • ${faciliteSeqE[0].label} le ${payDate(0)} : ${amtStr(faciliteSeqE[0])}`,
-          `      • ${faciliteSeqE[1].label} le ${payDate(1)} : ${amtStr(faciliteSeqE[1])}`,
-          ...faciliteM3lines,
-        ] : []),
+        ...emailPaymentBlock,
         `${'━'.repeat(45)}`,
         ``,
         `Cette proposition est valable jusqu'à votre échéance${form.nextBilling ? ` du ${fmtDateLong(form.nextBilling)}` : ''}.`,
@@ -1449,6 +1447,7 @@
       const [customScenario,    setCustomScenario]    = useState(null);
       const [customDiscount,    setCustomDiscount]    = useState(0);
       const [customDiscountFac, setCustomDiscountFac] = useState(0);
+      const [upfrontTimes,      setUpfrontTimes]      = useState(1);
 
       const goTo = (target) => {
         setSlideDir(target > step ? 'fwd' : 'back');
@@ -1458,7 +1457,7 @@
       const resetDownstream = () => {
         setSubmitted(false); setSelectedIdx(null); setSelectedPayment(null);
         setDiscounts({}); setDiscountsFacilite({}); setStep(0);
-        setCustomScenario(null); setCustomDiscount(0); setCustomDiscountFac(0);
+        setCustomScenario(null); setCustomDiscount(0); setCustomDiscountFac(0); setUpfrontTimes(1);
       };
 
       const onChange = (key, val) => {
@@ -1654,6 +1653,7 @@
                     discountFacilite={selectedDiscountFac} onDiscountFaciliteChange={handleDiscountFacilite}
                     zone={form.zone} selectedPayment={selectedPayment} onPaymentSelect={handlePaymentSelect}
                     prorata={prorata} demoMode={false} startDate={payStart}
+                    upfrontTimes={upfrontTimes} setUpfrontTimes={setUpfrontTimes}
                   />
                 </Card>
                 </>
@@ -1665,7 +1665,7 @@
                 <BackButton to={2} label="Retour à l'échéancier" />
                 <Card style={{ padding: 28 }}>
                   <OutputSection form={form} scenario={selectedScenario} discountValue={selectedDiscount}
-                    discountFacilite={selectedDiscountFac} payment={selectedPayment} prorata={prorata} demoMode={false} />
+                    discountFacilite={selectedDiscountFac} payment={selectedPayment} prorata={prorata} demoMode={false} upfrontTimes={upfrontTimes} />
                 </Card>
                 <SaveCaseBlock form={form} scenario={selectedScenario} discountValue={selectedDiscount} payment={selectedPayment} />
                 </>
