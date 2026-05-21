@@ -1084,7 +1084,10 @@
       const canFacilite    = true;
       const status         = discountStatus(discountValue, rules, notRecommended);
       const statusFac      = discountStatus(discountFacilite, rules, notRecommended);
-      const needsVal       = status.key === 'manager' || (payment === 'facilite' && statusFac.key === 'manager');
+      const needsVal       = status.key === 'manager'
+                           || (payment === 'facilite' && statusFac.key === 'manager')
+                           || scenario.isCustom
+                           || scenario.notRecommended;
       const payLabel       = payment === 'upfront' ? 'Annuel upfront' : 'Annuel facilité 12×';
       const bandEmoji      = BAND_META[form.band]?.emoji || '';
       const hsNum          = parseInt(form.healthScore);
@@ -1221,7 +1224,7 @@
         ...(form.nextBilling ? [`> Échéance : ${form.nextBilling}`] : []),
         ``,
         needsVal
-          ? `⚠️ *Validation requise* — discount dépasse le seuil autonome. Merci de valider avant contact client. @manager`
+          ? `⚠️ *Validation requise* — ${scenario.isCustom ? 'offre saisie manuellement (hors algo)' : scenario.notRecommended ? 'offre hors recommandation' : 'discount dépasse le seuil autonome'}. Merci de valider avant contact client. @manager`
           : `✅ *Autonome* — dans les seuils, aucune validation requise.`,
       ].join('\n');
 
