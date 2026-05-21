@@ -1241,7 +1241,7 @@
           const r = await fetch('/send-slack', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: slackText, account: form.account, am: amName }),
+            body: JSON.stringify({ text: slackText, account: form.account, am: amName, needsValidation: needsVal }),
           });
           const d = await r.json();
           setSlackSending(p => ({ ...p, cr: d.success ? 'sent' : 'error' }));
