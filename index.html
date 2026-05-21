@@ -328,11 +328,14 @@
     }
 
     // ─── Discount Slider ──────────────────────────────────────────────────────
-    function DiscountSlider({ discount, rules, notRecommended, onDiscountChange }) {
-      if (notRecommended || !rules) return null;
-      const status    = discountStatus(discount, rules, notRecommended);
-      const trackClr  = status.color === 'green' ? C.green : status.color === 'orange' ? C.orange : C.red;
-      const sliderMax = rules.validate;
+    function DiscountSlider({ discount, rules, notRecommended, onDiscountChange, freeMode }) {
+      if (!freeMode && (notRecommended || !rules)) return null;
+      const FREE_MAX  = 60;
+      const sliderMax = freeMode ? FREE_MAX : rules.validate;
+      const status    = freeMode ? null : discountStatus(discount, rules, notRecommended);
+      const trackClr  = !status ? C.purple
+                      : status.color === 'green' ? C.green
+                      : status.color === 'orange' ? C.orange : C.red;
       const pct       = sliderMax > 0 ? (discount / sliderMax) * 100 : 0;
       const trackStyle = {
         background: sliderMax > 0 ? `linear-gradient(to right, ${trackClr} ${pct}%, #E5E7EB ${pct}%)` : '#E5E7EB',
@@ -348,8 +351,8 @@
             style={{ ...trackStyle, width: '100%', cursor: 'pointer' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
             <span style={{ fontSize: 10, color: C.label }}>0%</span>
-            <span style={{ fontSize: 10, color: C.green, fontWeight: 700 }}>{rules.ok}%</span>
-            <span style={{ fontSize: 10, color: C.orange, fontWeight: 500 }}>Max {rules.validate}%</span>
+            {!freeMode && <span style={{ fontSize: 10, color: C.green, fontWeight: 700 }}>{rules.ok}%</span>}
+            <span style={{ fontSize: 10, color: freeMode ? C.label : C.orange, fontWeight: 500 }}>Max {sliderMax}%</span>
           </div>
         </div>
       );
@@ -798,7 +801,7 @@
               {/* Discount upfront modifiable */}
               {!demoMode && onDiscountChange && (
                 <div style={{ marginTop: 12 }} onClick={e => e.stopPropagation()}>
-                  <DiscountSlider discount={discountValue} rules={rules} notRecommended={notRecommended} onDiscountChange={onDiscountChange} />
+                  <DiscountSlider discount={discountValue} rules={rules} notRecommended={notRecommended} onDiscountChange={onDiscountChange} freeMode={!rules} />
                 </div>
               )}
 
@@ -924,7 +927,7 @@
               {/* Discount facilité */}
               {canFacilite && (
                 <div onClick={e => e.stopPropagation()} style={{ marginTop: 16 }}>
-                  <DiscountSlider discount={discountFacilite} rules={rules} notRecommended={notRecommended} onDiscountChange={onDiscountFaciliteChange} />
+                  <DiscountSlider discount={discountFacilite} rules={rules} notRecommended={notRecommended} onDiscountChange={onDiscountFaciliteChange} freeMode={!rules} />
                 </div>
               )}
 
