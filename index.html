@@ -1068,9 +1068,10 @@
 
     // ─── Étape 4 : Output ────────────────────────────────────────────────────
     function OutputSection({ form, scenario, discountValue, discountFacilite, payment, prorata, demoMode, upfrontTimes = 1, amName }) {
-      const [copied, setCopied] = useState(null);
+      const [copied,      setCopied]      = useState(null);
       const [editedSlack, setEditedSlack] = useState(null);
       const [editedEmail, setEditedEmail] = useState(null);
+      const [slackSending, setSlackSending] = useState({});
       const { offer, rules, notRecommended, label: scenarioLabel } = scenario;
       const catalog        = PRICING[form.zone]?.upfront?.[offer] ?? 0;
       const negotiated     = catalog * (1 - discountValue / 100);
@@ -1234,6 +1235,23 @@
         navigator.clipboard.writeText(text).then(() => { setCopied(key); setTimeout(() => setCopied(null), 2200); });
       };
 
+      const sendSlack = async (type) => {
+        setSlackSending(p => ({ ...p, [type]: 'sending' }));
+        try {
+          const r = await fetch('/send-slack', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type, text: slackText, account: form.account, am: amName }),
+          });
+          const d = await r.json();
+          setSlackSending(p => ({ ...p, [type]: d.success ? 'sent' : 'error' }));
+          setTimeout(() => setSlackSending(p => ({ ...p, [type]: 'idle' })), 3000);
+        } catch {
+          setSlackSending(p => ({ ...p, [type]: 'error' }));
+          setTimeout(() => setSlackSending(p => ({ ...p, [type]: 'idle' })), 3000);
+        }
+      };
+
       if (demoMode) {
         return <OfferBenefits offer={offer} />;
       }
@@ -1263,19 +1281,36 @@
             { key: 'email', icon: '✉️', label: 'Email client', badge: null, text: emailText, setText: setEditedEmail },
           ].map(({ key, icon, label, badge, text, setText }) => (
             <div key={key} style={{ background: 'white', border: `1px solid ${C.border}`, borderRadius: 16, overflow: 'hidden', marginBottom: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', background: '#FAFAFA', borderBottom: `1px solid ${C.border}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', background: '#FAFAFA', borderBottom: `1px solid ${C.border}`, flexWrap: 'wrap', gap: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span>{icon}</span>
                   <span style={{ fontWeight: 700, fontSize: 14, color: C.text }}>{label}</span>
                   {badge && <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 6, background: badge.bg, border: `1px solid ${badge.border}`, color: badge.color }}>{badge.t}</span>}
                 </div>
-                <button onClick={() => copy(text, key)} style={{
-                  fontSize: 13, fontWeight: 600, color: copied === key ? C.green : C.purple,
-                  background: copied === key ? C.greenLight : C.purpleLight,
-                  border: 'none', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', transition: 'all .15s',
-                }}>
-                  {copied === key ? '✓ Copié !' : 'Copier'}
-                </button>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  {key === 'slack' && (() => {
+                    const mkBtn = (type, emoji, label) => {
+                      const st = slackSending[type] || 'idle';
+                      return (
+                        <button key={type} onClick={() => sendSlack(type)} disabled={st === 'sending'}
+                          style={{ fontSize: 12, fontWeight: 600, padding: '5px 11px', borderRadius: 8, border: 'none', cursor: st === 'sending' ? 'wait' : 'pointer', transition: 'all .15s',
+                            background: st === 'sent' ? C.greenLight : st === 'error' ? C.redLight : '#F1F0FF',
+                            color: st === 'sent' ? C.green : st === 'error' ? C.red : C.purple,
+                          }}>
+                          {st === 'sending' ? '…' : st === 'sent' ? '✓ Envoyé !' : st === 'error' ? '❌ Erreur' : `${emoji} ${label}`}
+                        </button>
+                      );
+                    };
+                    return [mkBtn('thread', '🧵', 'Thread Slack'), mkBtn('cr', '📢', 'CR Slack')];
+                  })()}
+                  <button onClick={() => copy(text, key)} style={{
+                    fontSize: 13, fontWeight: 600, color: copied === key ? C.green : C.purple,
+                    background: copied === key ? C.greenLight : C.purpleLight,
+                    border: 'none', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', transition: 'all .15s',
+                  }}>
+                    {copied === key ? '✓ Copié !' : 'Copier'}
+                  </button>
+                </div>
               </div>
               <textarea value={text} onChange={e => setText(e.target.value)} style={{
                 width: '100%', boxSizing: 'border-box', padding: '16px 20px',
@@ -1593,7 +1628,7 @@
               {selectedScenario && selectedPayment && (
                 <Card style={{ padding: 40 }}>
                   <OutputSection form={form} scenario={selectedScenario} discountValue={selectedDiscount}
-                    discountFacilite={selectedDiscountFac} payment={selectedPayment} prorata={prorata} demoMode={true} />
+                    discountFacilite={selectedDiscountFac} payment={selectedPayment} prorata={prorata} demoMode={true} amName={amMapping[form.ae] || form.ae} />
                 </Card>
               )}
             </div>

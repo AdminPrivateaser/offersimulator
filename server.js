@@ -202,6 +202,21 @@ app.post('/save-case', async (req, res) => {
   res.json({ success: true, id: result.id });
 });
 
+app.post('/send-slack', async (req, res) => {
+  const { type, text, account, am } = req.body;
+  const webhookUrl = type === 'thread'
+    ? process.env.ZAPIER_WEBHOOK_THREAD
+    : process.env.ZAPIER_WEBHOOK_CR;
+  if (!webhookUrl) return res.status(500).json({ error: `ZAPIER_WEBHOOK_${type.toUpperCase()} not configured` });
+  const r = await fetch(webhookUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, account, am }),
+  });
+  const ok = r.ok;
+  res.json({ success: ok });
+});
+
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 3001;
