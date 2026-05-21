@@ -102,6 +102,21 @@ async function callGemini(prompt) {
 
 // ── Routes ────────────────────────────────────────────────────────────────
 
+const AM_MAPPING_PAGE_ID = '3675ebcd4f0881a9a64cf3d64615169f';
+
+app.get('/am-mapping', async (req, res) => {
+  const data = await notionGet(`/blocks/${AM_MAPPING_PAGE_ID}/children?page_size=100`);
+  const mapping = {};
+  for (const block of (data.results || [])) {
+    if (block.type !== 'table_row') continue;
+    const cells = block.table_row?.cells || [];
+    const id   = cells[0]?.map(t => t.plain_text).join('').trim();
+    const name = cells[1]?.map(t => t.plain_text).join('').trim();
+    if (id && name && id !== 'ID Salesforce') mapping[id] = name;
+  }
+  res.json(mapping);
+});
+
 app.post('/recommend', async (req, res) => {
   const client = req.body;
   const [kb, cases] = await Promise.all([fetchKB(), fetchSimilarCases(client.zone)]);

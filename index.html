@@ -375,7 +375,7 @@
       subStart: '', subStartDate: '',
     };
 
-    function ClientForm({ form, onChange, onSubmit }) {
+    function ClientForm({ form, onChange, onSubmit, amMapping }) {
       const hsNum    = parseInt(form.healthScore);
       const hsOk     = !isNaN(hsNum) && hsNum >= 0;
       const canSubmit = form.account && form.ae && form.offer && form.mrr && hsOk && form.band;
@@ -400,7 +400,11 @@
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
                 <Label>AM Retention</Label>
-                <input style={inputStyle} placeholder="Marie Dupont" value={form.ae} onChange={e => onChange('ae', e.target.value)} />
+                <input style={inputStyle} placeholder="Marie Dupont"
+                  value={amMapping[form.ae] || form.ae}
+                  onChange={e => onChange('ae', e.target.value)}
+                  title={amMapping[form.ae] ? `ID Salesforce : ${form.ae}` : undefined}
+                />
               </div>
 
               <div>
@@ -1063,7 +1067,7 @@
     }
 
     // ─── Étape 4 : Output ────────────────────────────────────────────────────
-    function OutputSection({ form, scenario, discountValue, discountFacilite, payment, prorata, demoMode, upfrontTimes = 1 }) {
+    function OutputSection({ form, scenario, discountValue, discountFacilite, payment, prorata, demoMode, upfrontTimes = 1, amName }) {
       const [copied, setCopied] = useState(null);
       const [editedSlack, setEditedSlack] = useState(null);
       const [editedEmail, setEditedEmail] = useState(null);
@@ -1189,6 +1193,7 @@
         `N'hésitez pas à revenir vers moi pour toute question.`,
         ``,
         `Cordialement,`,
+        ...(amName ? [`${amName}`] : []),
       ].join('\n');
 
       const slack = [
@@ -1448,6 +1453,11 @@
       const [customDiscount,    setCustomDiscount]    = useState(0);
       const [customDiscountFac, setCustomDiscountFac] = useState(0);
       const [upfrontTimes,      setUpfrontTimes]      = useState(1);
+      const [amMapping,         setAmMapping]         = useState({});
+
+      useEffect(() => {
+        fetch('/am-mapping').then(r => r.json()).then(setAmMapping).catch(() => {});
+      }, []);
 
       const goTo = (target) => {
         setSlideDir(target > step ? 'fwd' : 'back');
@@ -1603,7 +1613,7 @@
                       <span style={{ fontSize: 13, fontWeight: 600, color: C.purple }}>Données pré-remplies depuis Salesforce — vérifiez et complétez si besoin.</span>
                     </div>
                   )}
-                  <ClientForm form={form} onChange={onChange} onSubmit={onSubmit} />
+                  <ClientForm form={form} onChange={onChange} onSubmit={onSubmit} amMapping={amMapping} />
                 </>
               )}
 
@@ -1665,7 +1675,8 @@
                 <BackButton to={2} label="Retour à l'échéancier" />
                 <Card style={{ padding: 28 }}>
                   <OutputSection form={form} scenario={selectedScenario} discountValue={selectedDiscount}
-                    discountFacilite={selectedDiscountFac} payment={selectedPayment} prorata={prorata} demoMode={false} upfrontTimes={upfrontTimes} />
+                    discountFacilite={selectedDiscountFac} payment={selectedPayment} prorata={prorata} demoMode={false} upfrontTimes={upfrontTimes}
+                    amName={amMapping[form.ae] || form.ae} />
                 </Card>
                 <SaveCaseBlock form={form} scenario={selectedScenario} discountValue={selectedDiscount} payment={selectedPayment} />
                 </>
