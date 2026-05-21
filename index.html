@@ -183,7 +183,7 @@
         }
       }
       return raw
-        .filter(s => s.offer !== null)
+        .filter(s => s.offer !== null && s.offer !== 'joy-only')
         .map((s, i) => ({ ...s, rank: i + 1, recommended: i === 0, notRecommended: !!s.notRecommended }));
     }
 
@@ -1048,6 +1048,8 @@
     // ─── Étape 4 : Output ────────────────────────────────────────────────────
     function OutputSection({ form, scenario, discountValue, discountFacilite, payment, prorata, demoMode }) {
       const [copied, setCopied] = useState(null);
+      const [editedSlack, setEditedSlack] = useState(null);
+      const [editedEmail, setEditedEmail] = useState(null);
       const { offer, rules, notRecommended, label: scenarioLabel } = scenario;
       const catalog        = PRICING[form.zone]?.upfront?.[offer] ?? 0;
       const negotiated     = catalog * (1 - discountValue / 100);
@@ -1209,6 +1211,12 @@
           : `✅ *Autonome* — dans les seuils, aucune validation requise.`,
       ].join('\n');
 
+      useEffect(() => { setEditedSlack(null); }, [slack]);
+      useEffect(() => { setEditedEmail(null); }, [email]);
+
+      const slackText = editedSlack !== null ? editedSlack : slack;
+      const emailText = editedEmail !== null ? editedEmail : email;
+
       const copy = (text, key) => {
         navigator.clipboard.writeText(text).then(() => { setCopied(key); setTimeout(() => setCopied(null), 2200); });
       };
@@ -1238,9 +1246,9 @@
           )}
 
           {[
-            { key: 'slack', icon: '💬', label: 'CR Slack — Manager', badge: needsVal ? { t: 'Validation requise', bg: C.orangeLight, border: '#FDE68A', color: '#B45309' } : { t: 'Pour info', bg: C.greenLight, border: '#A7F3D0', color: C.green }, text: slack },
-            { key: 'email', icon: '✉️', label: 'Email client', badge: null, text: email },
-          ].map(({ key, icon, label, badge, text }) => (
+            { key: 'slack', icon: '💬', label: 'CR Slack — Manager', badge: needsVal ? { t: 'Validation requise', bg: C.orangeLight, border: '#FDE68A', color: '#B45309' } : { t: 'Pour info', bg: C.greenLight, border: '#A7F3D0', color: C.green }, text: slackText, setText: setEditedSlack },
+            { key: 'email', icon: '✉️', label: 'Email client', badge: null, text: emailText, setText: setEditedEmail },
+          ].map(({ key, icon, label, badge, text, setText }) => (
             <div key={key} style={{ background: 'white', border: `1px solid ${C.border}`, borderRadius: 16, overflow: 'hidden', marginBottom: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', background: '#FAFAFA', borderBottom: `1px solid ${C.border}` }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1256,7 +1264,12 @@
                   {copied === key ? '✓ Copié !' : 'Copier'}
                 </button>
               </div>
-              <pre style={{ padding: '16px 20px', fontSize: 13, color: C.text, whiteSpace: 'pre-wrap', fontFamily: 'inherit', lineHeight: 1.65, overflowX: 'auto', margin: 0 }}>{text}</pre>
+              <textarea value={text} onChange={e => setText(e.target.value)} style={{
+                width: '100%', boxSizing: 'border-box', padding: '16px 20px',
+                fontSize: 13, color: C.text, whiteSpace: 'pre-wrap', fontFamily: 'inherit',
+                lineHeight: 1.65, border: 'none', outline: 'none', resize: 'vertical',
+                background: 'white', minHeight: 160,
+              }} rows={text.split('\n').length + 1} />
             </div>
           ))}
         </div>
@@ -1341,6 +1354,77 @@
       };
     }
 
+    // ─── CustomScenarioCard ────────────────────────────────────────────────────
+    function CustomScenarioCard({ zone, currentOffer, isSelected, onSelect }) {
+      const [open, setOpen] = useState(false);
+      const [offer, setOffer] = useState('');
+      const [discount, setDiscount] = useState(0);
+
+      const offerOptions = OFFER_KEYS.filter(k => k !== 'joy-only');
+      const catalogPrice = PRICING[zone]?.upfront?.[offer] ?? 0;
+      const negotiated   = catalogPrice * (1 - discount / 100);
+
+      const handleConfirm = () => {
+        if (!offer) return;
+        const scenario = {
+          offer, label: 'Offre personnalisée', rules: null,
+          notRecommended: false, rank: 0, recommended: false, isCustom: true,
+        };
+        onSelect(scenario, discount);
+      };
+
+      return (
+        <div style={{ background: 'white', border: `1.5px dashed ${isSelected ? C.purple : C.border}`, borderRadius: 16, padding: '16px 20px', marginTop: 4 }}>
+          <button onClick={() => setOpen(o => !o)} style={{
+            display: 'flex', alignItems: 'center', gap: 10, background: 'none', border: 'none',
+            cursor: 'pointer', padding: 0, width: '100%', textAlign: 'left',
+          }}>
+            <span style={{ width: 30, height: 30, borderRadius: 8, background: C.purpleLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>✏️</span>
+            <div>
+              <p style={{ fontWeight: 700, fontSize: 14, color: C.purple, margin: 0 }}>Saisie manuelle</p>
+              <p style={{ fontSize: 12, color: C.muted, margin: 0 }}>Offre et remise personnalisées hors algo</p>
+            </div>
+            <span style={{ marginLeft: 'auto', color: C.muted, fontSize: 18, lineHeight: 1 }}>{open ? '▾' : '▸'}</span>
+          </button>
+
+          {open && (
+            <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-end' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.label, marginBottom: 4 }}>Offre</label>
+                <select value={offer} onChange={e => setOffer(e.target.value)} style={{
+                  fontSize: 13, padding: '7px 10px', borderRadius: 8, border: `1.5px solid ${C.border}`,
+                  background: 'white', color: C.text, cursor: 'pointer', minWidth: 140,
+                }}>
+                  <option value="">— choisir —</option>
+                  {offerOptions.map(k => <option key={k} value={k}>{OFFER_NAMES[k]}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.label, marginBottom: 4 }}>Remise upfront (%)</label>
+                <input type="number" min={0} max={100} value={discount} onChange={e => setDiscount(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))} style={{
+                  fontSize: 13, padding: '7px 10px', borderRadius: 8, border: `1.5px solid ${C.border}`,
+                  background: 'white', color: C.text, width: 90,
+                }} />
+              </div>
+              {offer && (
+                <div style={{ fontSize: 12, color: C.muted }}>
+                  <span>Catalogue : {fmt(catalogPrice)}/an</span>
+                  {discount > 0 && <span> → Négocié : <strong style={{ color: C.text }}>{fmt(negotiated)}/an</strong></span>}
+                </div>
+              )}
+              <button onClick={handleConfirm} disabled={!offer} style={{
+                background: offer ? C.purple : '#E5E7EB', color: offer ? 'white' : C.muted,
+                border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13,
+                cursor: offer ? 'pointer' : 'default', whiteSpace: 'nowrap',
+              }}>
+                Sélectionner →
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+
     // ─── App ─────────────────────────────────────────────────────────────────
     function App() {
       const [form,              setForm]              = useState(fromUrl);
@@ -1352,6 +1436,9 @@
       const [demoMode,          setDemoMode]          = useState(false);
       const [step,              setStep]              = useState(0);
       const [slideDir,          setSlideDir]          = useState('fwd');
+      const [customScenario,    setCustomScenario]    = useState(null);
+      const [customDiscount,    setCustomDiscount]    = useState(0);
+      const [customDiscountFac, setCustomDiscountFac] = useState(0);
 
       const goTo = (target) => {
         setSlideDir(target > step ? 'fwd' : 'back');
@@ -1361,6 +1448,7 @@
       const resetDownstream = () => {
         setSubmitted(false); setSelectedIdx(null); setSelectedPayment(null);
         setDiscounts({}); setDiscountsFacilite({}); setStep(0);
+        setCustomScenario(null); setCustomDiscount(0); setCustomDiscountFac(0);
       };
 
       const onChange = (key, val) => {
@@ -1399,10 +1487,15 @@
         if (selectedIdx === idx) setSelectedPayment(null);
       };
       const handleDiscountFacilite = (val) => {
-        setDiscountsFacilite(p => ({ ...p, [selectedIdx]: val }));
+        if (selectedIdx === -1) setCustomDiscountFac(val);
+        else setDiscountsFacilite(p => ({ ...p, [selectedIdx]: val }));
       };
       const handleSelect = idx => {
         setSelectedIdx(idx); setSelectedPayment(null); goTo(2);
+      };
+      const handleSelectCustom = (scenario, discount) => {
+        setCustomScenario(scenario); setCustomDiscount(discount); setCustomDiscountFac(0);
+        setSelectedIdx(-1); setSelectedPayment(null); goTo(2);
       };
       const handlePaymentSelect = (mode) => {
         setSelectedPayment(mode); goTo(3);
@@ -1411,9 +1504,12 @@
       const payStart = (form.subStart === 'early' && form.subStartDate) ? form.subStartDate
                      : form.nextBilling || '';
 
-      const selectedScenario       = selectedIdx !== null ? scenarios[selectedIdx] : null;
-      const selectedDiscount       = selectedIdx !== null ? (discounts[selectedIdx] ?? 0) : 0;
-      const selectedDiscountFac    = selectedIdx !== null ? (discountsFacilite[selectedIdx] ?? 0) : 0;
+      const selectedScenario       = selectedIdx === -1 ? customScenario
+                                   : selectedIdx !== null ? scenarios[selectedIdx] : null;
+      const selectedDiscount       = selectedIdx === -1 ? customDiscount
+                                   : selectedIdx !== null ? (discounts[selectedIdx] ?? 0) : 0;
+      const selectedDiscountFac    = selectedIdx === -1 ? customDiscountFac
+                                   : selectedIdx !== null ? (discountsFacilite[selectedIdx] ?? 0) : 0;
       const bm                     = BAND_META[form.band];
       const colCls = { 1: '1fr', 2: '1fr 1fr', 3: '1fr 1fr 1fr', 4: '1fr 1fr' }[scenarios.length] ?? '1fr 1fr 1fr';
 
@@ -1530,6 +1626,7 @@
                     ))}
                   </div>
                 </Card>
+                <CustomScenarioCard zone={form.zone} currentOffer={form.offer} isSelected={selectedIdx === -1} onSelect={handleSelectCustom} />
                 </>
               )}
 
