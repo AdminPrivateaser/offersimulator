@@ -1226,7 +1226,7 @@
       ].join('\n');
 
       const slack = [
-        `📋 *${needsVal ? '⚠️ Demande de validation — ' : ''}Renouvellement client*`,
+        `📋 *${needsVal ? '⚠️ Demande de validation — ' : ''}${form.negType || 'Renouvellement'} client*`,
         ``,
         `*Compte :* ${form.account}`,
         ...(form.negType ? [`*Type :* ${form.negType}`] : []),
