@@ -189,8 +189,8 @@
 
     function discountStatus(discount, rules, notRecommended) {
       if (notRecommended || !rules) return { key: 'nr',      label: 'Non recommandé',                    color: 'gray'   };
-      if (discount > rules.validate) return { key: 'manager', label: 'Validation manager obligatoire',   color: 'red'    };
-      if (discount >= rules.ok)      return { key: 'validate', label: 'À valider — reste vigilant',      color: 'orange' };
+      if (discount > rules.validate) return { key: 'manager',  label: 'Validation manager obligatoire', color: 'red'    };
+      if (discount >= rules.ok)      return { key: 'validate', label: 'Autonome — reste vigilant',       color: 'orange' };
       return                                { key: 'ok',       label: 'Dans les seuils autonomes',       color: 'green'  };
     }
 
@@ -251,10 +251,10 @@
     }
     function StatusBadge({ status }) {
       const conf = {
-        ok:        { bg: C.greenLight,  border: '#A7F3D0', color: C.green,   icon: '✅', text: 'Autonome'             },
-        validate:  { bg: C.orangeLight, border: '#FDE68A', color: '#B45309', icon: '⚠️', text: 'Validation manager'  },
-        forbidden: { bg: C.redLight,    border: '#FECACA', color: C.red,     icon: '⛔', text: 'Interdit'             },
-        nr:        { bg: '#F9FAFB',     border: C.border,  color: C.muted,   icon: '—',  text: 'Non recommandé'      },
+        ok:       { bg: C.greenLight,  border: '#A7F3D0', color: C.green,   icon: '✅', text: 'Autonome'              },
+        validate: { bg: '#FEFCE8',     border: '#FDE68A', color: '#A16207', icon: '⚠️', text: 'Autonome — vigilance' },
+        manager:  { bg: C.redLight,    border: '#FECACA', color: C.red,     icon: '🔴', text: 'Validation manager'   },
+        nr:       { bg: '#F9FAFB',     border: C.border,  color: C.muted,   icon: '—',  text: 'Non recommandé'       },
       }[status.key] || {};
       return (
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600, background: conf.bg, border: `1px solid ${conf.border}`, color: conf.color }}>
@@ -591,7 +591,7 @@
               <p style={{ fontSize: 24, fontWeight: 900, color: C.text }}>{fmt(negotiated)}<span style={{ fontSize: 12, fontWeight: 400, color: C.muted }}>/an</span></p>
               <p style={{ fontSize: 11, color: C.muted }}>{fmt(negotiated / 12)}/mois</p>
             </div>
-            {!notRecommended && status.key !== 'forbidden' && (
+            {!notRecommended && (
               <button onClick={() => onSelect(rank - 1)} style={{
                 padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700,
                 border: 'none', cursor: 'pointer', transition: 'all .15s',
@@ -1079,7 +1079,7 @@
       const canFacilite    = true;
       const status         = discountStatus(discountValue, rules, notRecommended);
       const statusFac      = discountStatus(discountFacilite, rules, notRecommended);
-      const needsVal       = ['validate', 'manager'].includes(status.key) || (payment === 'facilite' && ['validate', 'manager'].includes(statusFac.key));
+      const needsVal       = status.key === 'manager' || (payment === 'facilite' && statusFac.key === 'manager');
       const payLabel       = payment === 'upfront' ? 'Annuel upfront' : 'Annuel facilité 12×';
       const bandEmoji      = BAND_META[form.band]?.emoji || '';
       const hsNum          = parseInt(form.healthScore);
@@ -1206,7 +1206,7 @@
         `> Plan : *${OFFER_NAMES[offer]}* (${scenarioLabel})`,
         ...(engLabel  ? [`> Engagement : ${engLabel}`] : []),
         ...(payStart  ? [`> Début souscription : ${form.subStart === 'early' ? `Early renewal — ${fmtDateLong(payStart)}` : 'Au moment du renouvellement'}`] : []),
-        `> Discount upfront : ${discountValue}%${status.key === 'validate' ? ` ⚠️ (seuil autonome : ${rules?.ok}%)` : ' ✅'}`,
+        `> Discount upfront : ${discountValue}% ${status.key === 'manager' ? `🔴 (validation manager — seuil : ${rules?.validate}%)` : status.key === 'validate' ? `⚠️ (vigilance — seuil : ${rules?.validate}%)` : '✅'}`,
         ...(payment === 'facilite' && discountFacilite > 0 ? [`> Discount facilité : ${discountFacilite}%${statusFac.key === 'validate' ? ` ⚠️` : ' ✅'}`] : []),
         ...(credit > 0 ? [`> Crédit prorata : *− ${fmtDec(credit)}* (${prorata.consumedDays} j consommés / ${prorata.totalDays})`] : []),
         `> Prix négocié upfront : *${fmt(negotiated)}/an*`,
