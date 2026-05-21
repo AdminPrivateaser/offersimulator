@@ -367,8 +367,10 @@
     }
 
     // ─── Étape 1 : Formulaire ─────────────────────────────────────────────────
+    const SF_BASE_URL = 'https://joy2.lightning.force.com';
+
     const EMPTY_FORM = {
-      account: '', ae: '', zone: 'A', offer: 'advanced',
+      account: '', ae: '', oppId: '', zone: 'A', offer: 'advanced',
       arr: '', currentDiscount: 0,
       engagement: '', mrr: '', nextBilling: '',
       healthScore: '', band: null,
@@ -1244,7 +1246,13 @@
           const r = await fetch('/send-slack', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: slackText, account: form.account, am: amName, needsValidation: needsVal }),
+            body: JSON.stringify({
+              text: slackText,
+              account: form.account,
+              am: amName,
+              needsValidation: needsVal,
+              oppUrl: form.oppId ? `${SF_BASE_URL}/lightning/r/Opportunity/${form.oppId}/view` : '',
+            }),
           });
           const d = await r.json();
           setSlackSending(p => ({ ...p, cr: d.success ? 'sent' : 'error' }));
@@ -1388,6 +1396,7 @@
         ...EMPTY_FORM,
         account:         get('account',      EMPTY_FORM.account),
         ae:              get('ae',           EMPTY_FORM.ae),
+        oppId:           get('oppid',        EMPTY_FORM.oppId),
         zone,
         offer:           offerKey,
         arr,
