@@ -1235,20 +1235,20 @@
         navigator.clipboard.writeText(text).then(() => { setCopied(key); setTimeout(() => setCopied(null), 2200); });
       };
 
-      const sendSlack = async (type) => {
-        setSlackSending(p => ({ ...p, [type]: 'sending' }));
+      const sendSlack = async () => {
+        setSlackSending(p => ({ ...p, cr: 'sending' }));
         try {
           const r = await fetch('/send-slack', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type, text: slackText, account: form.account, am: amName }),
+            body: JSON.stringify({ text: slackText, account: form.account, am: amName }),
           });
           const d = await r.json();
-          setSlackSending(p => ({ ...p, [type]: d.success ? 'sent' : 'error' }));
-          setTimeout(() => setSlackSending(p => ({ ...p, [type]: 'idle' })), 3000);
+          setSlackSending(p => ({ ...p, cr: d.success ? 'sent' : 'error' }));
+          setTimeout(() => setSlackSending(p => ({ ...p, cr: 'idle' })), 3000);
         } catch {
-          setSlackSending(p => ({ ...p, [type]: 'error' }));
-          setTimeout(() => setSlackSending(p => ({ ...p, [type]: 'idle' })), 3000);
+          setSlackSending(p => ({ ...p, cr: 'error' }));
+          setTimeout(() => setSlackSending(p => ({ ...p, cr: 'idle' })), 3000);
         }
       };
 
@@ -1289,19 +1289,16 @@
                 </div>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   {key === 'slack' && (() => {
-                    const mkBtn = (type, emoji, label) => {
-                      const st = slackSending[type] || 'idle';
-                      return (
-                        <button key={type} onClick={() => sendSlack(type)} disabled={st === 'sending'}
-                          style={{ fontSize: 12, fontWeight: 600, padding: '5px 11px', borderRadius: 8, border: 'none', cursor: st === 'sending' ? 'wait' : 'pointer', transition: 'all .15s',
-                            background: st === 'sent' ? C.greenLight : st === 'error' ? C.redLight : '#F1F0FF',
-                            color: st === 'sent' ? C.green : st === 'error' ? C.red : C.purple,
-                          }}>
-                          {st === 'sending' ? '…' : st === 'sent' ? '✓ Envoyé !' : st === 'error' ? '❌ Erreur' : `${emoji} ${label}`}
-                        </button>
-                      );
-                    };
-                    return [mkBtn('thread', '🧵', 'Thread Slack'), mkBtn('cr', '📢', 'CR Slack')];
+                    const st = slackSending['cr'] || 'idle';
+                    return (
+                      <button onClick={sendSlack} disabled={st === 'sending'}
+                        style={{ fontSize: 12, fontWeight: 600, padding: '5px 11px', borderRadius: 8, border: 'none', cursor: st === 'sending' ? 'wait' : 'pointer', transition: 'all .15s',
+                          background: st === 'sent' ? C.greenLight : st === 'error' ? C.redLight : '#F1F0FF',
+                          color: st === 'sent' ? C.green : st === 'error' ? C.red : C.purple,
+                        }}>
+                        {st === 'sending' ? '…' : st === 'sent' ? '✓ Envoyé !' : st === 'error' ? '❌ Erreur' : '📢 Envoyer CR Slack'}
+                      </button>
+                    );
                   })()}
                   <button onClick={() => copy(text, key)} style={{
                     fontSize: 13, fontWeight: 600, color: copied === key ? C.green : C.purple,
