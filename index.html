@@ -403,6 +403,14 @@
               </div>
             </div>
 
+            {form.oppId && (
+              <a href={`${SF_BASE_URL}/lightning/r/Opportunity/${form.oppId}/view`} target="_blank" rel="noreferrer"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 16, padding: '7px 14px', borderRadius: 10, background: '#EFF6FF', border: '1.5px solid #BFDBFE', color: '#1D4ED8', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
+                <span style={{ fontSize: 15 }}>🔗</span>
+                Opportunité Salesforce liée
+                <span style={{ fontSize: 11, opacity: 0.7, fontWeight: 400 }}>{form.oppId}</span>
+              </a>
+            )}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div style={{ gridColumn: '1 / -1' }}>
                 <Label>Nom du compte</Label>
