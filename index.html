@@ -209,6 +209,10 @@
 
     const fmt    = n => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
     const fmtDec = n => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+    const fillTemplate = (tpl, vars) => {
+      if (!tpl) return '';
+      return Object.entries(vars).reduce((t, [k, v]) => t.split(`{{${k}}}`).join(v ?? ''), tpl);
+    };
 
     // ─── Prorata ──────────────────────────────────────────────────────────────
     function computeProrata(form) {
@@ -1114,10 +1118,26 @@
 
     // ─── Étape 4 : Output ────────────────────────────────────────────────────
     function OutputSection({ form, scenario, discountValue, discountFacilite, payment, prorata, demoMode, upfrontTimes = 1, amName }) {
-      const [copied,      setCopied]      = useState(null);
-      const [editedSlack, setEditedSlack] = useState(null);
-      const [editedEmail, setEditedEmail] = useState(null);
-      const [slackSending, setSlackSending] = useState({});
+      const [copied,         setCopied]         = useState(null);
+      const [editedSlack,    setEditedSlack]    = useState(null);
+      const [editedEmailTu,  setEditedEmailTu]  = useState(null);
+      const [editedEmailVou, setEditedEmailVou] = useState(null);
+      const [rawTemplates,   setRawTemplates]   = useState({ tutoiement: null, vouvoiement: null });
+      const [tplLoading,     setTplLoading]     = useState(false);
+      const [slackSending,   setSlackSending]   = useState({});
+
+      useEffect(() => {
+        const name  = amName;
+        const negTy = form.negType || 'Renouvellement';
+        if (!name) return;
+        setTplLoading(true);
+        setEditedEmailTu(null);
+        setEditedEmailVou(null);
+        fetch(`/email-template?amName=${encodeURIComponent(name)}&negType=${encodeURIComponent(negTy)}`)
+          .then(r => r.json())
+          .then(data => { setRawTemplates(data); setTplLoading(false); })
+          .catch(() => { setRawTemplates({ tutoiement: null, vouvoiement: null }); setTplLoading(false); });
+      }, [amName, form.negType]);
       const { offer, rules, notRecommended, label: scenarioLabel } = scenario;
       const catalog        = PRICING[form.zone]?.upfront?.[offer] ?? 0;
       const negotiated     = catalog * (1 - discountValue / 100);
@@ -1246,6 +1266,44 @@
         ...(amName ? [`${amName}`] : []),
       ].join('\n');
 
+      // ── Templates email Notion ────────────────────────────────────────────────
+      const blocEcheancier = [
+        `Abonnement actuel : ${OFFER_NAMES[form.offer]} - ${currentPriceStr}, renouvellement prévu le ${fmtDateLong(form.nextBilling)}.`,
+        ``,
+        `Nouvelle offre : ${chosenOfferStr}.`,
+        ...(payStart ? [`Cette nouvelle offre débuterait à partir du ${fmtDateLong(payStart)} pour un engagement d'un an.`] : []),
+        ``,
+        `${'━'.repeat(45)}`,
+        ...emailPaymentBlock,
+        `${'━'.repeat(45)}`,
+        ``,
+        `Cette proposition est valable jusqu'à votre échéance${form.nextBilling ? ` du ${fmtDateLong(form.nextBilling)}` : ''}.`,
+      ].join('\n');
+      const amPrenom = (amName || form.ae || '').split(' ')[0];
+      const templateVars = {
+        COMPTE: form.account || '',
+        OFFRE_ACTUELLE: OFFER_NAMES[form.offer] || form.offer || '',
+        PRIX_ACTUEL: fmtDec(currentAnnualPrice),
+        NOUVELLE_OFFRE: OFFER_NAMES[offer] || offer || '',
+        PRIX_NEGO: fmtDec(negotiated),
+        MRR_NEGO: fmtDec(negotiated / 12),
+        DISCOUNT: String(discountValue),
+        DATE_RENOUV: fmtDateLong(form.nextBilling),
+        DATE_DEBUT: fmtDateLong(payStart || form.nextBilling),
+        AM_PRENOM: amPrenom,
+        AM_NOM: amName || form.ae || '',
+        BLOC_ECHEANCIER: blocEcheancier,
+      };
+      const emailTuRaw   = rawTemplates.tutoiement  ? fillTemplate(rawTemplates.tutoiement,  templateVars) : email;
+      const emailVouRaw  = rawTemplates.vouvoiement ? fillTemplate(rawTemplates.vouvoiement, templateVars) : email;
+      const emailTuText  = editedEmailTu  !== null ? editedEmailTu  : emailTuRaw;
+      const emailVouText = editedEmailVou !== null ? editedEmailVou : emailVouRaw;
+      const tplBadge = tplLoading
+        ? { t: '⏳ chargement…', bg: '#F9FAFB', border: C.border, color: C.muted }
+        : rawTemplates.tutoiement
+          ? { t: '📝 Template Notion', bg: C.purpleLight, border: C.purpleMid, color: C.purple }
+          : { t: 'Template par défaut', bg: '#F9FAFB', border: C.border, color: C.muted };
+
       // ── Upsell / Downsell pour le CR Slack ───────────────────────────────────
       const slackCurrentArr = parseFloat(form.arr) > 0 ? parseFloat(form.arr) : parseFloat(form.mrr) * 12;
       const slackDelta      = slackCurrentArr > 0 ? negotiated - slackCurrentArr : null;
@@ -1284,10 +1342,9 @@
       ].join('\n');
 
       useEffect(() => { setEditedSlack(null); }, [slack]);
-      useEffect(() => { setEditedEmail(null); }, [email]);
+      useEffect(() => { setEditedEmailTu(null); setEditedEmailVou(null); }, [email]);
 
       const slackText = editedSlack !== null ? editedSlack : slack;
-      const emailText = editedEmail !== null ? editedEmail : email;
 
       const copy = (text, key) => {
         navigator.clipboard.writeText(text).then(() => { setCopied(key); setTimeout(() => setCopied(null), 2200); });
@@ -1343,8 +1400,9 @@
           )}
 
           {[
-            { key: 'slack', icon: '💬', label: 'CR Slack — Manager', badge: needsVal ? { t: 'Validation requise', bg: C.orangeLight, border: '#FDE68A', color: '#B45309' } : { t: 'Pour info', bg: C.greenLight, border: '#A7F3D0', color: C.green }, text: slackText, setText: setEditedSlack },
-            { key: 'email', icon: '✉️', label: 'Email client', badge: null, text: emailText, setText: setEditedEmail },
+            { key: 'slack',     icon: '💬', label: 'CR Slack — Manager',   badge: needsVal ? { t: 'Validation requise', bg: C.orangeLight, border: '#FDE68A', color: '#B45309' } : { t: 'Pour info', bg: C.greenLight, border: '#A7F3D0', color: C.green }, text: slackText,    setText: setEditedSlack },
+            { key: 'email_tu',  icon: '✉️', label: 'Email — Tutoiement',   badge: tplBadge, text: emailTuText,  setText: setEditedEmailTu },
+            { key: 'email_vou', icon: '✉️', label: 'Email — Vouvoiement',  badge: tplBadge, text: emailVouText, setText: setEditedEmailVou },
           ].map(({ key, icon, label, badge, text, setText }) => (
             <div key={key} style={{ background: 'white', border: `1px solid ${C.border}`, borderRadius: 16, overflow: 'hidden', marginBottom: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', background: '#FAFAFA', borderBottom: `1px solid ${C.border}`, flexWrap: 'wrap', gap: 8 }}>

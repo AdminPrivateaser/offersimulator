@@ -22,6 +22,15 @@ const KB_PAGES = [
   { id: '3665ebcd4f088196b2d3f59338b61ec4', title: 'Hiérarchie et prix des offres' },
 ];
 
+// Notion page IDs des templates email par AM (nom résolu depuis amMapping)
+const EMAIL_TEMPLATE_PAGES = {
+  'Margaux Masraff':  '3685ebcd4f0881258d2df0bbd696041a',
+  'Tom Dumas':        '3685ebcd4f0881f6931cd657870f3f17',
+  'Steven Sandana':   '3685ebcd4f08817689d2cfbe6e88162b',
+  'Aurore Mauguin':   '3685ebcd4f0881b297dfdbdf2cd102d5',
+  'Jason Decotter':   '3685ebcd4f08817492e3eaf2dc501287',
+};
+
 // ── Notion helpers ────────────────────────────────────────────────────────
 
 async function notionGet(path) {
@@ -52,6 +61,57 @@ function blocksToText(blocks = []) {
     if (type === 'divider') return '---';
     return '';
   }).filter(Boolean).join('\n');
+}
+
+// Parse les blocs Notion d'une page AM pour extraire tutoiement/vouvoiement
+// selon le type de négo (heading_2) et la formule (heading_3)
+function parseEmailTemplate(blocks, negType) {
+  const norm = s => (s || '').toLowerCase().trim()
+    .replace('up-sell', 'upsell').replace('down-sell', 'downsell');
+  const aliases = {
+    'renouvellement': 'renouvellement', 'incoming churn': 'incoming churn',
+    'upsell': 'upsell', 'downsell': 'downsell', 'first contact': 'first contact',
+  };
+  const target = aliases[norm(negType)] || norm(negType) || 'renouvellement';
+
+  let inSec = false, inTuto = false, inVou = false;
+  const tuto = [], vou = [];
+
+  for (const block of blocks) {
+    const type = block.type;
+    const c = block[type];
+    const rt = () => (c?.rich_text || []).map(t => t.plain_text).join('');
+
+    if (type === 'heading_2') {
+      if (inSec) break; // section suivante = on arrête
+      if ((aliases[norm(rt())] || norm(rt())) === target) { inSec = true; inTuto = false; inVou = false; }
+      continue;
+    }
+    if (type === 'heading_3' && inSec) {
+      const h = rt().toLowerCase();
+      inTuto = h.includes('tuto');
+      inVou  = h.includes('vouvoi') || (h.includes('vous') && !h.includes('tuto'));
+      continue;
+    }
+    if (!inSec) continue;
+
+    let line;
+    if (['paragraph', 'quote', 'callout'].includes(type)) line = rt(); // '' = ligne vide volontaire
+    else if (['bulleted_list_item', 'numbered_list_item'].includes(type)) line = `• ${rt()}`;
+    else if (type === 'divider') line = '─'.repeat(45);
+    else continue;
+
+    if (inTuto) tuto.push(line);
+    if (inVou)  vou.push(line);
+  }
+
+  const trim = lines => {
+    let s = 0, e = lines.length - 1;
+    while (s <= e && !lines[s]) s++;
+    while (e >= s && !lines[e]) e--;
+    return s > e ? null : lines.slice(s, e + 1).join('\n');
+  };
+  return { tutoiement: trim(tuto), vouvoiement: trim(vou) };
 }
 
 async function fetchPageText(pageId) {
@@ -120,6 +180,19 @@ app.get('/am-mapping', async (req, res) => {
     }
   }
   res.json(mapping);
+});
+
+app.get('/email-template', async (req, res) => {
+  const { amName, negType } = req.query;
+  const pageId = EMAIL_TEMPLATE_PAGES[amName]
+    || EMAIL_TEMPLATE_PAGES[Object.keys(EMAIL_TEMPLATE_PAGES).find(k => k.toLowerCase() === (amName || '').toLowerCase())];
+  if (!pageId) return res.json({ tutoiement: null, vouvoiement: null });
+  try {
+    const data = await notionGet(`/blocks/${pageId}/children?page_size=200`);
+    res.json(parseEmailTemplate(data.results || [], negType));
+  } catch (e) {
+    res.json({ tutoiement: null, vouvoiement: null });
+  }
 });
 
 app.post('/recommend', async (req, res) => {
