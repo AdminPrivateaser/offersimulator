@@ -1520,6 +1520,69 @@
       );
     }
 
+    // ─── Upsell / Downsell Summary ───────────────────────────────────────────
+    function UpsellSummaryCard({ currentArr, newArr, offerName, onConfirm }) {
+      const hasData  = currentArr > 0 && !isNaN(currentArr);
+      const delta    = hasData ? newArr - currentArr : 0;
+      const deltaPct = hasData && currentArr > 0 ? (delta / currentArr) * 100 : 0;
+      const isUp     = delta > 0.5;
+      const isDown   = delta < -0.5;
+
+      const accent    = isUp ? C.green      : isDown ? C.coral    : C.purple;
+      const accentL   = isUp ? C.greenLight : isDown ? C.coralLight : C.purpleLight;
+      const accentM   = isUp ? '#A7F3D0'   : isDown ? C.coralMid  : C.purpleMid;
+      const dirIcon   = isUp ? '📈'        : isDown ? '📉'        : '↔️';
+      const typeLabel = isUp ? 'Upsell'    : isDown ? 'Downsell'  : "Renouvellement à l'identique";
+
+      return (
+        <div style={{ background: 'white', border: `1.5px solid ${accentM}`, borderRadius: 16, padding: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+            <SectionIcon color={accent}>{dirIcon}</SectionIcon>
+            <div>
+              <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>Évolution vs abonnement actuel</p>
+              <p style={{ fontSize: 12, color: C.muted }}>ARR de départ → prix négocié {offerName}</p>
+            </div>
+            <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, background: accentL, color: accent, border: `1px solid ${accentM}` }}>
+              {typeLabel}
+            </span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr 1.2fr', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+            <div style={{ borderRadius: 14, padding: '14px 18px', background: '#F9FAFB', border: `1px solid ${C.border}` }}>
+              <Label>ARR actuel</Label>
+              <p style={{ fontSize: 22, fontWeight: 900, color: C.text }}>{hasData ? fmt(currentArr) : '—'}</p>
+              <p style={{ fontSize: 11, color: C.muted }}>/an</p>
+            </div>
+            <div style={{ fontSize: 20, color: C.muted, textAlign: 'center' }}>→</div>
+            <div style={{ borderRadius: 14, padding: '14px 18px', background: '#F9FAFB', border: `1px solid ${C.border}` }}>
+              <Label>Prix proposé</Label>
+              <p style={{ fontSize: 22, fontWeight: 900, color: C.text }}>{fmt(newArr)}</p>
+              <p style={{ fontSize: 11, color: C.muted }}>{offerName} /an</p>
+            </div>
+            <div style={{ borderRadius: 14, padding: '14px 18px', background: accentL, border: `1.5px solid ${accentM}`, textAlign: 'center' }}>
+              <p style={{ fontSize: 12, fontWeight: 600, color: accent, marginBottom: 6 }}>Variation</p>
+              <p style={{ fontSize: 24, fontWeight: 900, color: accent }}>
+                {!hasData ? '—' : `${delta >= 0 ? '+' : ''}${fmt(delta)}`}
+              </p>
+              <p style={{ fontSize: 14, fontWeight: 700, color: accent, marginTop: 4 }}>
+                {!hasData ? 'ARR non renseigné' : `${deltaPct >= 0 ? '+' : ''}${deltaPct.toFixed(1)}%`}
+              </p>
+            </div>
+          </div>
+
+          <button onClick={onConfirm} style={{
+            width: '100%', padding: '14px 0', borderRadius: 12, fontSize: 14, fontWeight: 800,
+            border: 'none', cursor: 'pointer', transition: 'all .15s',
+            background: C.purple, color: 'white',
+            boxShadow: `0 4px 16px ${C.purple}44`,
+            letterSpacing: '.01em',
+          }}>
+            Voir les échéanciers →
+          </button>
+        </div>
+      );
+    }
+
     // ─── App ─────────────────────────────────────────────────────────────────
     function App() {
       const [form,              setForm]              = useState(fromUrl);
@@ -1535,6 +1598,7 @@
       const [customDiscount,    setCustomDiscount]    = useState(0);
       const [customDiscountFac, setCustomDiscountFac] = useState(0);
       const [upfrontTimes,      setUpfrontTimes]      = useState(1);
+      const upsellCardRef = useRef(null);
       const [amMapping,         setAmMapping]         = useState({});
 
       useEffect(() => {
@@ -1592,11 +1656,13 @@
         else setDiscountsFacilite(p => ({ ...p, [selectedIdx]: val }));
       };
       const handleSelect = idx => {
-        setSelectedIdx(idx); setSelectedPayment(null); goTo(2);
+        setSelectedIdx(idx); setSelectedPayment(null);
+        setTimeout(() => upsellCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 80);
       };
       const handleSelectCustom = (scenario, discount) => {
         setCustomScenario(scenario); setCustomDiscount(discount); setCustomDiscountFac(0);
-        setSelectedIdx(-1); setSelectedPayment(null); goTo(2);
+        setSelectedIdx(-1); setSelectedPayment(null);
+        setTimeout(() => upsellCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 80);
       };
       const handlePaymentSelect = (mode) => {
         setSelectedPayment(mode); goTo(3);
@@ -1728,6 +1794,16 @@
                   </div>
                 </Card>
                 <CustomScenarioCard zone={form.zone} currentOffer={form.offer} isSelected={selectedIdx === -1} onSelect={handleSelectCustom} />
+                {selectedScenario && (
+                  <div ref={upsellCardRef}>
+                    <UpsellSummaryCard
+                      currentArr={parseFloat(form.arr) > 0 ? parseFloat(form.arr) : parseFloat(form.mrr) * 12}
+                      newArr={(PRICING[form.zone]?.upfront?.[selectedScenario.offer] ?? 0) * (1 - selectedDiscount / 100)}
+                      offerName={OFFER_NAMES[selectedScenario.offer] || selectedScenario.offer}
+                      onConfirm={() => goTo(2)}
+                    />
+                  </div>
+                )}
                 </>
               )}
 
