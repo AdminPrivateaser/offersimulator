@@ -1237,6 +1237,13 @@
         ...(amName ? [`${amName}`] : []),
       ].join('\n');
 
+      // ── Upsell / Downsell pour le CR Slack ───────────────────────────────────
+      const slackCurrentArr = parseFloat(form.arr) > 0 ? parseFloat(form.arr) : parseFloat(form.mrr) * 12;
+      const slackDelta      = slackCurrentArr > 0 ? negotiated - slackCurrentArr : null;
+      const slackDeltaPct   = slackDelta !== null ? (slackDelta / slackCurrentArr) * 100 : null;
+      const slackDirIcon    = slackDelta === null ? '' : slackDelta > 0.5 ? '📈' : slackDelta < -0.5 ? '📉' : '↔️';
+      const slackDirLabel   = slackDelta === null ? '' : slackDelta > 0.5 ? 'Upsell' : slackDelta < -0.5 ? 'Downsell' : 'Identique';
+
       const slack = [
         `📋 *${needsVal ? '⚠️ Demande de validation — ' : ''}${form.negType || 'Renouvellement'} client*`,
         ``,
@@ -1259,6 +1266,7 @@
         `> Prix négocié upfront : *${fmt(negotiated)}/an*`,
         `> Mode de paiement : ${payLabel}`,
         `> Montant final (après crédit) : *${fmtDec(finalPrice)}/an*`,
+        ...(slackDelta !== null ? [`> Évolution ARR : *${slackDelta >= 0 ? '+' : ''}${fmt(slackDelta)}* (${slackDeltaPct >= 0 ? '+' : ''}${slackDeltaPct.toFixed(1)}%) ${slackDirIcon} _${slackDirLabel}_`] : []),
         ...(form.nextBilling ? [`> Échéance : ${form.nextBilling}`] : []),
         ``,
         needsVal
