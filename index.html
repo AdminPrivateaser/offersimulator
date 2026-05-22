@@ -68,6 +68,15 @@
       },
     };
 
+    // Anciens prix catalogue (avant hausse tarifaire) — Zone A
+    // Un ARR égal à ces montants = pas de remise, client sur l'ancien catalogue
+    const LEGACY_PRICES = {
+      basic:    2220,
+      advanced: 3900,
+      expert:   6900,
+      e1:       10000, // inchangé, listé par cohérence
+    };
+
     const BANDS = [
       { key: 'red',   emoji: '🔴', label: 'Faible',   sub: '< 100%'   },
       { key: 'green', emoji: '🟢', label: 'Correcte', sub: '100–200%' },
@@ -1431,11 +1440,13 @@
       const arr = cleanNum(get('arr', ''));
 
       // currentDiscount auto-calculé depuis ARR vs prix catalogue, arrondi à 5%
-      const arrNum  = parseFloat(arr);
+      // Si ARR = ancien prix catalogue (LEGACY_PRICES) → remise = 0 (pas de discount, ancien tarif)
+      const arrNum   = parseFloat(arr);
       const catPrice = PRICING[zone]?.upfront?.[offerKey] ?? 0;
       const roundTo5 = n => Math.round(n / 5) * 5;
+      const isLegacy = LEGACY_PRICES[offerKey] != null && Math.round(arrNum) === LEGACY_PRICES[offerKey];
       const currentDiscount = arrNum > 0 && catPrice > 0
-        ? roundTo5(Math.max(0, Math.round((1 - arrNum / catPrice) * 100)))
+        ? (isLegacy ? 0 : roundTo5(Math.max(0, Math.round((1 - arrNum / catPrice) * 100))))
         : Number(get('currentDiscount', EMPTY_FORM.currentDiscount));
 
       return {
@@ -1628,10 +1639,14 @@
         setForm(f => {
           const next = { ...f, [key]: val };
           if (key === 'arr' || key === 'offer' || key === 'zone') {
-            const arrNum  = parseFloat(String(key === 'arr' ? val : next.arr).replace(',', '.'));
+            const arrNum   = parseFloat(String(key === 'arr' ? val : next.arr).replace(',', '.'));
             const catPrice = PRICING[next.zone]?.upfront?.[next.offer] ?? 0;
-            if (arrNum > 0 && catPrice > 0)
-              next.currentDiscount = Math.round(Math.max(0, Math.round((1 - arrNum / catPrice) * 100)) / 5) * 5;
+            if (arrNum > 0 && catPrice > 0) {
+              const legacy = LEGACY_PRICES[next.offer];
+              next.currentDiscount = (legacy != null && Math.round(arrNum) === legacy)
+                ? 0
+                : Math.round(Math.max(0, Math.round((1 - arrNum / catPrice) * 100)) / 5) * 5;
+            }
           }
           return next;
         });
