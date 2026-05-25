@@ -1129,10 +1129,12 @@
       useEffect(() => {
         const name  = amName;
         const negTy = form.negType || 'Renouvellement';
-        if (!name) return;
-        setTplLoading(true);
+        // Toujours vider l'état édité et les templates avant tout (même si amName est vide)
         setEditedEmailTu(null);
         setEditedEmailVou(null);
+        setRawTemplates({ tutoiement: null, vouvoiement: null });
+        if (!name) return;
+        setTplLoading(true);
         fetch(`/email-template?amName=${encodeURIComponent(name)}&negType=${encodeURIComponent(negTy)}`)
           .then(r => r.json())
           .then(data => { setRawTemplates(data); setTplLoading(false); })
