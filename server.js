@@ -382,13 +382,14 @@ app.get('/front-debug', async (req, res) => {
   const TEST_EMAIL  = process.env.FRONT_TEST_EMAIL;
 
   // Diagnostic sans révéler la valeur complète
-  const envKeys = Object.keys(process.env).filter(k => k.startsWith('FRONT') || k.startsWith('NOTION') || k.startsWith('GEMINI') || k.startsWith('ZAPIER'));
+  const allKeys = Object.keys(process.env).sort();
   const tokenInfo = {
     defined: !!FRONT_TOKEN,
     length: FRONT_TOKEN ? FRONT_TOKEN.length : 0,
     preview: FRONT_TOKEN ? FRONT_TOKEN.slice(0, 12) + '…' : '(vide)',
     testEmail: TEST_EMAIL || '(non défini)',
-    allFrontKeys: envKeys,
+    keysContainingFront: allKeys.filter(k => k.toLowerCase().includes('front')),
+    allCustomKeys: allKeys.filter(k => !k.startsWith('npm_') && !k.startsWith('NODE') && !k.startsWith('PATH') && !k.startsWith('HOME') && !k.startsWith('PWD') && !k.startsWith('RAILWAY')),
   };
   if (!FRONT_TOKEN) return res.json({ error: 'FRONT_API_KEY non définie sur Railway', diagnostic: tokenInfo });
   const frontGet = path => fetch(`https://api2.frontapp.com${path}`, {
