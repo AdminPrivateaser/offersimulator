@@ -1356,6 +1356,9 @@
       const [draftError, setDraftError] = useState({});
       const [showFrontSetup, setShowFrontSetup] = useState(false);
       const [tokenInputLocal, setTokenInputLocal] = useState('');
+      const [testEmailInput, setTestEmailInput] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('front_config') || '{}').testEmail || ''; } catch { return ''; }
+      });
       const openDraft = async (text, key) => {
         const token = frontToken || localStorage.getItem('front_token') || '';
         if (!token) { setShowFrontSetup(true); return; }
@@ -1438,11 +1441,8 @@
                 <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: 'block', marginBottom: 4 }}>
                   Email de test <span style={{ fontWeight: 400, color: C.muted }}>(optionnel — force la boîte de destination)</span>
                 </label>
-                <input value={(() => { try { return JSON.parse(localStorage.getItem('front_config') || '{}').testEmail || ''; } catch { return ''; } })()}
-                  onChange={e => {
-                    const cfg = (() => { try { return JSON.parse(localStorage.getItem('front_config') || '{}'); } catch { return {}; } })();
-                    localStorage.setItem('front_config', JSON.stringify({ ...cfg, testEmail: e.target.value }));
-                  }}
+                <input value={testEmailInput}
+                  onChange={e => setTestEmailInput(e.target.value)}
                   placeholder="admin.ops@joy.io"
                   style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 8, border: `1.5px solid ${C.border}`, fontSize: 13, marginBottom: 16 }} />
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -1450,6 +1450,8 @@
                   <button onClick={() => {
                     if (!tokenInputLocal.trim()) return;
                     localStorage.setItem('front_token', tokenInputLocal.trim());
+                    const cfg = (() => { try { return JSON.parse(localStorage.getItem('front_config') || '{}'); } catch { return {}; } })();
+                    localStorage.setItem('front_config', JSON.stringify({ ...cfg, testEmail: testEmailInput.trim() }));
                     setShowFrontSetup(false);
                     setTokenInputLocal('');
                     window.dispatchEvent(new Event('front-token-saved'));
@@ -1465,7 +1467,7 @@
               <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>Supports de communication</p>
               <p style={{ fontSize: 12, color: C.muted }}>CR manager & email client prêts à copier</p>
             </div>
-            <button onClick={() => { setTokenInputLocal(frontToken || localStorage.getItem('front_token') || ''); setShowFrontSetup(true); }}
+            <button onClick={() => { setTokenInputLocal(frontToken || localStorage.getItem('front_token') || ''); setTestEmailInput((() => { try { return JSON.parse(localStorage.getItem('front_config') || '{}').testEmail || ''; } catch { return ''; } })()); setShowFrontSetup(true); }}
               title="Configurer le token API Front"
               style={{ fontSize: 12, color: frontToken || localStorage.getItem('front_token') ? C.green : C.muted, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px' }}>
               {frontToken || localStorage.getItem('front_token') ? '🔑 Front ✓' : '🔑 Configurer Front'}
