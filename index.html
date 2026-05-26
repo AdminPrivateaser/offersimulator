@@ -1117,7 +1117,7 @@
     }
 
     // ─── Étape 4 : Output ────────────────────────────────────────────────────
-    function OutputSection({ form, scenario, discountValue, discountFacilite, payment, prorata, demoMode, upfrontTimes = 1, amName, frontToken }) {
+    function OutputSection({ form, scenario, discountValue, discountFacilite, payment, prorata, demoMode, upfrontTimes = 1, amName }) {
       const [copied,         setCopied]         = useState(null);
       const [editedSlack,    setEditedSlack]    = useState(null);
       const [editedEmailTu,  setEditedEmailTu]  = useState(null);
@@ -1355,13 +1355,10 @@
       const [draftState, setDraftState] = useState({});
       const [draftError, setDraftError] = useState({});
       const [showFrontSetup, setShowFrontSetup] = useState(false);
-      const [tokenInputLocal, setTokenInputLocal] = useState('');
       const [testEmailInput, setTestEmailInput] = useState(() => {
         try { return JSON.parse(localStorage.getItem('front_config') || '{}').testEmail || ''; } catch { return ''; }
       });
       const openDraft = async (text, key) => {
-        const token = frontToken || localStorage.getItem('front_token') || '';
-        if (!token) { setShowFrontSetup(true); return; }
         const lines = text.split('\n');
         const subject = lines[0].replace(/^Objet\s*:\s*/i, '').trim();
         let bi = 1;
@@ -1373,7 +1370,7 @@
           const cfg = (() => { try { return JSON.parse(localStorage.getItem('front_config') || '{}'); } catch { return {}; } })();
           const r = await fetch('/create-front-draft', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-front-token': token },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ subject, body, amName, testEmail: cfg.testEmail || '' }),
           });
           const d = await r.json();
@@ -1425,19 +1422,11 @@
 
       return (
         <div>
-          {/* ── Modal config token Front ─────────────────────────────────────── */}
+          {/* ── Modal config test Front ──────────────────────────────────────── */}
           {showFrontSetup && (
             <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ background: 'white', borderRadius: 16, padding: 28, width: 440, maxWidth: '90vw', boxShadow: '0 8px 32px rgba(0,0,0,.18)' }}>
-                <p style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>🔑 Configuration Front</p>
-                <p style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
-                  Front → Settings → Developers → API tokens → Créer un token.<br/>
-                  Permissions : <b>channels:read</b>, <b>teammates:read</b>, <b>drafts:write</b>.
-                </p>
-                <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: 'block', marginBottom: 4 }}>Token API</label>
-                <input value={tokenInputLocal} onChange={e => setTokenInputLocal(e.target.value)}
-                  placeholder="eyJhbGci…"
-                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 8, border: `1.5px solid ${C.border}`, fontSize: 13, marginBottom: 12 }} />
+              <div style={{ background: 'white', borderRadius: 16, padding: 28, width: 400, maxWidth: '90vw', boxShadow: '0 8px 32px rgba(0,0,0,.18)' }}>
+                <p style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>⚙️ Config test Front</p>
                 <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: 'block', marginBottom: 4 }}>
                   Email de test <span style={{ fontWeight: 400, color: C.muted }}>(optionnel — force la boîte de destination)</span>
                 </label>
@@ -1448,13 +1437,9 @@
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                   <button onClick={() => setShowFrontSetup(false)} style={{ padding: '8px 16px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'white', cursor: 'pointer', fontSize: 13 }}>Annuler</button>
                   <button onClick={() => {
-                    if (!tokenInputLocal.trim()) return;
-                    localStorage.setItem('front_token', tokenInputLocal.trim());
                     const cfg = (() => { try { return JSON.parse(localStorage.getItem('front_config') || '{}'); } catch { return {}; } })();
                     localStorage.setItem('front_config', JSON.stringify({ ...cfg, testEmail: testEmailInput.trim() }));
                     setShowFrontSetup(false);
-                    setTokenInputLocal('');
-                    window.dispatchEvent(new Event('front-token-saved'));
                   }} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: C.purple, color: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Enregistrer</button>
                 </div>
               </div>
@@ -1467,10 +1452,10 @@
               <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>Supports de communication</p>
               <p style={{ fontSize: 12, color: C.muted }}>CR manager & email client prêts à copier</p>
             </div>
-            <button onClick={() => { setTokenInputLocal(frontToken || localStorage.getItem('front_token') || ''); setTestEmailInput((() => { try { return JSON.parse(localStorage.getItem('front_config') || '{}').testEmail || ''; } catch { return ''; } })()); setShowFrontSetup(true); }}
-              title="Configurer le token API Front"
-              style={{ fontSize: 12, color: frontToken || localStorage.getItem('front_token') ? C.green : C.muted, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px' }}>
-              {frontToken || localStorage.getItem('front_token') ? '🔑 Front ✓' : '🔑 Configurer Front'}
+            <button onClick={() => { setTestEmailInput((() => { try { return JSON.parse(localStorage.getItem('front_config') || '{}').testEmail || ''; } catch { return ''; } })()); setShowFrontSetup(true); }}
+              title="Config test Front"
+              style={{ fontSize: 12, color: C.muted, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px' }}>
+              ⚙️
             </button>
           </div>
 
@@ -1767,9 +1752,6 @@
     // ─── App ─────────────────────────────────────────────────────────────────
     function App() {
       const [form,              setForm]              = useState(fromUrl);
-      const [frontToken,        setFrontToken]        = useState(() => localStorage.getItem('front_token') || '');
-      const [showTokenModal,    setShowTokenModal]    = useState(false);
-      const [tokenInput,        setTokenInput]        = useState('');
       const [submitted,         setSubmitted]         = useState(false);
       const [discounts,         setDiscounts]         = useState({});
       const [discountsFacilite, setDiscountsFacilite] = useState({});
@@ -1789,11 +1771,6 @@
         fetch('/am-mapping').then(r => r.json()).then(setAmMapping).catch(() => {});
       }, []);
 
-      useEffect(() => {
-        const handler = () => setFrontToken(localStorage.getItem('front_token') || '');
-        window.addEventListener('front-token-saved', handler);
-        return () => window.removeEventListener('front-token-saved', handler);
-      }, []);
 
       const goTo = (target) => {
         setSlideDir(target > step ? 'fwd' : 'back');
@@ -1935,7 +1912,7 @@
               {selectedScenario && selectedPayment && (
                 <Card style={{ padding: 40 }}>
                   <OutputSection form={form} scenario={selectedScenario} discountValue={selectedDiscount}
-                    discountFacilite={selectedDiscountFac} payment={selectedPayment} prorata={prorata} demoMode={true} amName={amMapping[form.ae] || form.ae} frontToken={frontToken} />
+                    discountFacilite={selectedDiscountFac} payment={selectedPayment} prorata={prorata} demoMode={true} amName={amMapping[form.ae] || form.ae} />
                 </Card>
               )}
             </div>
@@ -2028,7 +2005,7 @@
                 <Card style={{ padding: 28 }}>
                   <OutputSection form={form} scenario={selectedScenario} discountValue={selectedDiscount}
                     discountFacilite={selectedDiscountFac} payment={selectedPayment} prorata={prorata} demoMode={false} upfrontTimes={upfrontTimes}
-                    amName={amMapping[form.ae] || form.ae} frontToken={frontToken} />
+                    amName={amMapping[form.ae] || form.ae} />
                 </Card>
                 <SaveCaseBlock form={form} scenario={selectedScenario} discountValue={selectedDiscount} payment={selectedPayment} />
                 </>
