@@ -298,11 +298,40 @@ app.post('/create-front-draft', async (req, res) => {
   }).then(r => r.json());
 
   try {
-    // ── 1. Résoudre le channel ────────────────────────────────────────────────
+    const norm = s => (s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+
+    // ── 1. Trouver l'AM + son channel perso ──────────────────────────────────
+    // On récupère teammates ET channels en parallèle
+    const [td, cd] = await Promise.all([
+      frontGet('/teammates?limit=100'),
+      frontGet('/channels?limit=100'),
+    ]);
+    const teammates = td._results || [];
+    const channels  = cd._results || [];
+
     let channelId = FRONT_CHANNEL;
+    let authorId;
+
+    if (amNameReq) {
+      // Trouver le teammate par nom complet
+      const tm = teammates.find(t =>
+        norm(`${t.first_name} ${t.last_name}`) === norm(amNameReq) ||
+        norm(t.username) === norm(amNameReq)
+      );
+      if (tm) {
+        authorId = tm.id;
+        // Trouver le channel dont l'adresse correspond à l'email du teammate
+        if (!channelId && tm.email) {
+          const ch = channels.find(c =>
+            c.settings?.address?.toLowerCase() === tm.email.toLowerCase()
+          );
+          if (ch) channelId = ch.id;
+        }
+      }
+    }
+
+    // Fallback : premier channel email si rien trouvé
     if (!channelId) {
-      const d = await frontGet('/channels');
-      const channels = d._results || [];
       const ch = channels.find(c => ['smtp', 'gmail', 'microsoft365'].includes(c.type))
                || channels.find(c => c.type !== 'custom')
                || channels[0];
@@ -310,20 +339,7 @@ app.post('/create-front-draft', async (req, res) => {
       channelId = ch.id;
     }
 
-    // ── 2. Résoudre l'author (AM) ─────────────────────────────────────────────
-    let authorId;
-    if (amNameReq) {
-      const td = await frontGet('/teammates');
-      const teammates = td._results || [];
-      const norm = s => (s || '').toLowerCase().replace(/\s+/g, ' ').trim();
-      const tm = teammates.find(t =>
-        norm(`${t.first_name} ${t.last_name}`) === norm(amNameReq) ||
-        norm(t.username) === norm(amNameReq)
-      );
-      if (tm) authorId = tm.id;
-    }
-
-    // ── 3. Créer le brouillon ─────────────────────────────────────────────────
+    // ── 2. Créer le brouillon dans la boîte perso de l'AM ────────────────────
     const payload = {
       subject,
       body: body.replace(/\n/g, '<br>'),
