@@ -292,7 +292,7 @@ app.post('/create-front-draft', async (req, res) => {
   const FRONT_CHANNEL = process.env.FRONTAPP_CHANNEL_ID;
   if (!FRONT_TOKEN) return res.status(500).json({ error: 'Token Front non configuré' });
 
-  const { subject, body, amName: amNameReq } = req.body;
+  const { subject, body, amName: amNameReq, testEmail: testEmailReq } = req.body;
 
   const frontGet = path => fetch(`https://api2.frontapp.com${path}`, {
     headers: { Authorization: `Bearer ${FRONT_TOKEN}`, Accept: 'application/json' },
@@ -300,7 +300,7 @@ app.post('/create-front-draft', async (req, res) => {
 
   try {
     const norm = s => (s || '').toLowerCase().replace(/\s+/g, ' ').trim();
-    const TEST_EMAIL = process.env.FRONTAPP_TEST_EMAIL;
+    const TEST_EMAIL = testEmailReq || process.env.FRONTAPP_TEST_EMAIL;
 
     // ── 1. Trouver l'AM + son channel perso ──────────────────────────────────
     const [td, cd] = await Promise.all([

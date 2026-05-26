@@ -1367,10 +1367,11 @@
         setDraftState(p => ({ ...p, [key]: 'loading' }));
         setDraftError(p => ({ ...p, [key]: null }));
         try {
+          const cfg = (() => { try { return JSON.parse(localStorage.getItem('front_config') || '{}'); } catch { return {}; } })();
           const r = await fetch('/create-front-draft', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-front-token': token },
-            body: JSON.stringify({ subject, body, amName }),
+            body: JSON.stringify({ subject, body, amName, testEmail: cfg.testEmail || '' }),
           });
           const d = await r.json();
           if (d.url) {
@@ -1424,15 +1425,26 @@
           {/* ── Modal config token Front ─────────────────────────────────────── */}
           {showFrontSetup && (
             <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ background: 'white', borderRadius: 16, padding: 28, width: 420, maxWidth: '90vw', boxShadow: '0 8px 32px rgba(0,0,0,.18)' }}>
-                <p style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>🔑 Token API Front</p>
+              <div style={{ background: 'white', borderRadius: 16, padding: 28, width: 440, maxWidth: '90vw', boxShadow: '0 8px 32px rgba(0,0,0,.18)' }}>
+                <p style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>🔑 Configuration Front</p>
                 <p style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
                   Front → Settings → Developers → API tokens → Créer un token.<br/>
                   Permissions : <b>channels:read</b>, <b>teammates:read</b>, <b>drafts:write</b>.
                 </p>
+                <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: 'block', marginBottom: 4 }}>Token API</label>
                 <input value={tokenInputLocal} onChange={e => setTokenInputLocal(e.target.value)}
                   placeholder="eyJhbGci…"
-                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 8, border: `1.5px solid ${C.border}`, fontSize: 13, marginBottom: 14 }} />
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 8, border: `1.5px solid ${C.border}`, fontSize: 13, marginBottom: 12 }} />
+                <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: 'block', marginBottom: 4 }}>
+                  Email de test <span style={{ fontWeight: 400, color: C.muted }}>(optionnel — force la boîte de destination)</span>
+                </label>
+                <input value={(() => { try { return JSON.parse(localStorage.getItem('front_config') || '{}').testEmail || ''; } catch { return ''; } })()}
+                  onChange={e => {
+                    const cfg = (() => { try { return JSON.parse(localStorage.getItem('front_config') || '{}'); } catch { return {}; } })();
+                    localStorage.setItem('front_config', JSON.stringify({ ...cfg, testEmail: e.target.value }));
+                  }}
+                  placeholder="admin.ops@joy.io"
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 8, border: `1.5px solid ${C.border}`, fontSize: 13, marginBottom: 16 }} />
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                   <button onClick={() => setShowFrontSetup(false)} style={{ padding: '8px 16px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'white', cursor: 'pointer', fontSize: 13 }}>Annuler</button>
                   <button onClick={() => {
@@ -1440,7 +1452,6 @@
                     localStorage.setItem('front_token', tokenInputLocal.trim());
                     setShowFrontSetup(false);
                     setTokenInputLocal('');
-                    // Re-trigger avec le nouveau token via rechargement léger
                     window.dispatchEvent(new Event('front-token-saved'));
                   }} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: C.purple, color: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Enregistrer</button>
                 </div>
