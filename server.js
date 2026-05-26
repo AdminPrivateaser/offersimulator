@@ -380,7 +380,17 @@ app.post('/create-front-draft', async (req, res) => {
 app.get('/front-debug', async (req, res) => {
   const FRONT_TOKEN = process.env.FRONT_API_KEY;
   const TEST_EMAIL  = process.env.FRONT_TEST_EMAIL;
-  if (!FRONT_TOKEN) return res.json({ error: 'FRONT_API_KEY non définie sur Railway' });
+
+  // Diagnostic sans révéler la valeur complète
+  const envKeys = Object.keys(process.env).filter(k => k.startsWith('FRONT') || k.startsWith('NOTION') || k.startsWith('GEMINI') || k.startsWith('ZAPIER'));
+  const tokenInfo = {
+    defined: !!FRONT_TOKEN,
+    length: FRONT_TOKEN ? FRONT_TOKEN.length : 0,
+    preview: FRONT_TOKEN ? FRONT_TOKEN.slice(0, 12) + '…' : '(vide)',
+    testEmail: TEST_EMAIL || '(non défini)',
+    allFrontKeys: envKeys,
+  };
+  if (!FRONT_TOKEN) return res.json({ error: 'FRONT_API_KEY non définie sur Railway', diagnostic: tokenInfo });
   const frontGet = path => fetch(`https://api2.frontapp.com${path}`, {
     headers: { Authorization: `Bearer ${FRONT_TOKEN}`, Accept: 'application/json' },
   }).then(r => r.json());
