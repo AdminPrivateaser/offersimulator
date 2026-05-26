@@ -1353,6 +1353,7 @@
       };
 
       const [draftState, setDraftState] = useState({});
+      const [draftError, setDraftError] = useState({});
       const openDraft = async (text, key) => {
         const lines = text.split('\n');
         const subject = lines[0].replace(/^Objet\s*:\s*/i, '').trim();
@@ -1360,6 +1361,7 @@
         while (bi < lines.length && !lines[bi].trim()) bi++;
         const body = lines.slice(bi).join('\n');
         setDraftState(p => ({ ...p, [key]: 'loading' }));
+        setDraftError(p => ({ ...p, [key]: null }));
         try {
           const r = await fetch('/create-front-draft', {
             method: 'POST',
@@ -1371,14 +1373,17 @@
             window.open(d.url, '_blank');
             setDraftState(p => ({ ...p, [key]: 'ok' }));
           } else {
-            console.error('Front draft error:', d);
+            const msg = d.details ? JSON.stringify(d.details) : (d.error || 'Erreur inconnue');
+            console.error('[Draft Front] erreur:', msg);
+            setDraftError(p => ({ ...p, [key]: msg }));
             setDraftState(p => ({ ...p, [key]: 'error' }));
           }
         } catch (e) {
-          console.error('Front draft fetch error:', e);
+          console.error('[Draft Front] fetch error:', e);
+          setDraftError(p => ({ ...p, [key]: e.message }));
           setDraftState(p => ({ ...p, [key]: 'error' }));
         }
-        setTimeout(() => setDraftState(p => ({ ...p, [key]: null })), 3000);
+        setTimeout(() => setDraftState(p => ({ ...p, [key]: null })), 6000);
       };
 
       const sendSlack = async () => {
@@ -1456,16 +1461,22 @@
                     );
                   })()}
                   {key.startsWith('email') && (() => {
-                    const st = draftState[key] || 'idle';
+                    const st  = draftState[key] || 'idle';
+                    const err = draftError[key];
                     return (
-                      <button onClick={() => openDraft(text, key)} disabled={st === 'loading'} style={{
-                        fontSize: 12, fontWeight: 600, padding: '5px 11px', borderRadius: 8, border: 'none',
-                        cursor: st === 'loading' ? 'wait' : 'pointer', transition: 'all .15s',
-                        background: st === 'ok' ? '#D1FAE5' : st === 'error' ? C.redLight : '#EDE9FE',
-                        color: st === 'ok' ? C.green : st === 'error' ? C.red : '#5B21B6',
-                      }}>
-                        {st === 'loading' ? '⏳ Création…' : st === 'ok' ? '✓ Ouvert dans Front !' : st === 'error' ? '❌ Erreur Front' : '📬 Draft Front'}
-                      </button>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
+                        <button onClick={() => openDraft(text, key)} disabled={st === 'loading'} style={{
+                          fontSize: 12, fontWeight: 600, padding: '5px 11px', borderRadius: 8, border: 'none',
+                          cursor: st === 'loading' ? 'wait' : 'pointer', transition: 'all .15s',
+                          background: st === 'ok' ? '#D1FAE5' : st === 'error' ? C.redLight : '#EDE9FE',
+                          color: st === 'ok' ? C.green : st === 'error' ? C.red : '#5B21B6',
+                        }}>
+                          {st === 'loading' ? '⏳ Création…' : st === 'ok' ? '✓ Ouvert dans Front !' : st === 'error' ? '❌ Erreur' : '📬 Draft Front'}
+                        </button>
+                        {st === 'error' && err && (
+                          <span style={{ fontSize: 10, color: C.red, maxWidth: 220, textAlign: 'right', lineHeight: 1.3 }}>{err}</span>
+                        )}
+                      </div>
                     );
                   })()}
                   <button onClick={() => copy(text, key)} style={{

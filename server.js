@@ -299,15 +299,18 @@ app.post('/create-front-draft', async (req, res) => {
 
   try {
     const norm = s => (s || '').toLowerCase().replace(/\s+/g, ' ').trim();
-    const TEST_EMAIL = process.env.FRONT_TEST_EMAIL; // ex: admin.ops@joy.io (override de test)
+    const TEST_EMAIL = process.env.FRONT_TEST_EMAIL;
 
     // ── 1. Trouver l'AM + son channel perso ──────────────────────────────────
     const [td, cd] = await Promise.all([
       frontGet('/teammates?limit=100'),
       frontGet('/channels?limit=100'),
     ]);
+    console.log('[Front] teammates API:', JSON.stringify(td).slice(0, 200));
+    console.log('[Front] channels API:', JSON.stringify(cd).slice(0, 300));
     const teammates = td._results || [];
     const channels  = cd._results || [];
+    console.log(`[Front] ${teammates.length} teammates, ${channels.length} channels — TEST_EMAIL=${TEST_EMAIL||'(none)'}`);
 
     let channelId = FRONT_CHANNEL;
     let authorId;
@@ -353,6 +356,8 @@ app.post('/create-front-draft', async (req, res) => {
       to: [],
       ...(authorId ? { author_id: authorId } : {}),
     };
+    console.log(`[Front] channelId=${channelId} authorId=${authorId||'(none)'}`);
+    console.log('[Front] draft payload:', JSON.stringify({ ...payload, body: payload.body.slice(0,80)+'…' }));
     const dr = await fetch(`https://api2.frontapp.com/channels/${channelId}/drafts`, {
       method: 'POST',
       headers: {
@@ -363,9 +368,11 @@ app.post('/create-front-draft', async (req, res) => {
       body: JSON.stringify(payload),
     });
     const draft = await dr.json();
+    console.log('[Front] draft response:', JSON.stringify(draft).slice(0, 400));
     if (!draft._links) return res.status(500).json({ error: 'Erreur API Front', details: draft });
     res.json({ url: draft._links.front || draft._links.self });
   } catch (e) {
+    console.error('[Front] exception:', e);
     res.status(500).json({ error: e.message });
   }
 });
