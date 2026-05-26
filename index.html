@@ -1352,6 +1352,28 @@
         navigator.clipboard.writeText(text).then(() => { setCopied(key); setTimeout(() => setCopied(null), 2200); });
       };
 
+      const [draftOpened, setDraftOpened] = useState(null);
+      const openDraft = (text, key, via) => {
+        const lines = text.split('\n');
+        const subject = lines[0].replace(/^Objet\s*:\s*/i, '').trim();
+        let bi = 1;
+        while (bi < lines.length && !lines[bi].trim()) bi++;
+        const body = lines.slice(bi).join('\n');
+        if (via === 'gmail') {
+          window.open(
+            `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
+            '_blank'
+          );
+        } else {
+          // Front : intercepte mailto: si configuré comme handler dans Chrome
+          const a = document.createElement('a');
+          a.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        }
+        setDraftOpened(`${key}_${via}`);
+        setTimeout(() => setDraftOpened(null), 2200);
+      };
+
       const sendSlack = async () => {
         setSlackSending(p => ({ ...p, cr: 'sending' }));
         try {
@@ -1426,6 +1448,22 @@
                       </button>
                     );
                   })()}
+                  {key.startsWith('email') && (<>
+                    <button onClick={() => openDraft(text, key, 'gmail')} style={{
+                      fontSize: 12, fontWeight: 600, padding: '5px 11px', borderRadius: 8, border: 'none', cursor: 'pointer', transition: 'all .15s',
+                      background: draftOpened === `${key}_gmail` ? '#D1FAE5' : '#FEF3C7',
+                      color: draftOpened === `${key}_gmail` ? C.green : '#92400E',
+                    }}>
+                      {draftOpened === `${key}_gmail` ? '✓ Ouvert !' : '📨 Gmail'}
+                    </button>
+                    <button onClick={() => openDraft(text, key, 'front')} style={{
+                      fontSize: 12, fontWeight: 600, padding: '5px 11px', borderRadius: 8, border: 'none', cursor: 'pointer', transition: 'all .15s',
+                      background: draftOpened === `${key}_front` ? '#D1FAE5' : '#EDE9FE',
+                      color: draftOpened === `${key}_front` ? C.green : '#5B21B6',
+                    }}>
+                      {draftOpened === `${key}_front` ? '✓ Ouvert !' : '📬 Front'}
+                    </button>
+                  </>)}
                   <button onClick={() => copy(text, key)} style={{
                     fontSize: 13, fontWeight: 600, color: copied === key ? C.green : C.purple,
                     background: copied === key ? C.greenLight : C.purpleLight,
