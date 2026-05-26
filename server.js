@@ -286,6 +286,67 @@ app.post('/send-slack', async (req, res) => {
   res.json({ success: r.ok });
 });
 
+app.post('/create-front-draft', async (req, res) => {
+  const FRONT_TOKEN   = process.env.FRONT_API_KEY;
+  const FRONT_CHANNEL = process.env.FRONT_CHANNEL_ID;
+  if (!FRONT_TOKEN) return res.status(500).json({ error: 'FRONT_API_KEY not configured' });
+
+  const { subject, body, amName: amNameReq } = req.body;
+
+  const frontGet = path => fetch(`https://api2.frontapp.com${path}`, {
+    headers: { Authorization: `Bearer ${FRONT_TOKEN}`, Accept: 'application/json' },
+  }).then(r => r.json());
+
+  try {
+    // ── 1. Résoudre le channel ────────────────────────────────────────────────
+    let channelId = FRONT_CHANNEL;
+    if (!channelId) {
+      const d = await frontGet('/channels');
+      const channels = d._results || [];
+      const ch = channels.find(c => ['smtp', 'gmail', 'microsoft365'].includes(c.type))
+               || channels.find(c => c.type !== 'custom')
+               || channels[0];
+      if (!ch) return res.status(500).json({ error: 'Aucun channel Front trouvé' });
+      channelId = ch.id;
+    }
+
+    // ── 2. Résoudre l'author (AM) ─────────────────────────────────────────────
+    let authorId;
+    if (amNameReq) {
+      const td = await frontGet('/teammates');
+      const teammates = td._results || [];
+      const norm = s => (s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+      const tm = teammates.find(t =>
+        norm(`${t.first_name} ${t.last_name}`) === norm(amNameReq) ||
+        norm(t.username) === norm(amNameReq)
+      );
+      if (tm) authorId = tm.id;
+    }
+
+    // ── 3. Créer le brouillon ─────────────────────────────────────────────────
+    const payload = {
+      subject,
+      body: body.replace(/\n/g, '<br>'),
+      to: [],
+      ...(authorId ? { author_id: authorId } : {}),
+    };
+    const dr = await fetch(`https://api2.frontapp.com/channels/${channelId}/drafts`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${FRONT_TOKEN}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    const draft = await dr.json();
+    if (!draft._links) return res.status(500).json({ error: 'Erreur API Front', details: draft });
+    res.json({ url: draft._links.front || draft._links.self });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 3001;

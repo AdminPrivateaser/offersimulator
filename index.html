@@ -1352,26 +1352,33 @@
         navigator.clipboard.writeText(text).then(() => { setCopied(key); setTimeout(() => setCopied(null), 2200); });
       };
 
-      const [draftOpened, setDraftOpened] = useState(null);
-      const openDraft = (text, key, via) => {
+      const [draftState, setDraftState] = useState({});
+      const openDraft = async (text, key) => {
         const lines = text.split('\n');
         const subject = lines[0].replace(/^Objet\s*:\s*/i, '').trim();
         let bi = 1;
         while (bi < lines.length && !lines[bi].trim()) bi++;
         const body = lines.slice(bi).join('\n');
-        if (via === 'gmail') {
-          window.open(
-            `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
-            '_blank'
-          );
-        } else {
-          // Front : intercepte mailto: si configuré comme handler dans Chrome
-          const a = document.createElement('a');
-          a.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setDraftState(p => ({ ...p, [key]: 'loading' }));
+        try {
+          const r = await fetch('/create-front-draft', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subject, body, amName }),
+          });
+          const d = await r.json();
+          if (d.url) {
+            window.open(d.url, '_blank');
+            setDraftState(p => ({ ...p, [key]: 'ok' }));
+          } else {
+            console.error('Front draft error:', d);
+            setDraftState(p => ({ ...p, [key]: 'error' }));
+          }
+        } catch (e) {
+          console.error('Front draft fetch error:', e);
+          setDraftState(p => ({ ...p, [key]: 'error' }));
         }
-        setDraftOpened(`${key}_${via}`);
-        setTimeout(() => setDraftOpened(null), 2200);
+        setTimeout(() => setDraftState(p => ({ ...p, [key]: null })), 3000);
       };
 
       const sendSlack = async () => {
@@ -1448,15 +1455,19 @@
                       </button>
                     );
                   })()}
-                  {key.startsWith('email') && (
-                    <button onClick={() => openDraft(text, key, 'front')} style={{
-                      fontSize: 12, fontWeight: 600, padding: '5px 11px', borderRadius: 8, border: 'none', cursor: 'pointer', transition: 'all .15s',
-                      background: draftOpened === `${key}_front` ? '#D1FAE5' : '#EDE9FE',
-                      color: draftOpened === `${key}_front` ? C.green : '#5B21B6',
-                    }}>
-                      {draftOpened === `${key}_front` ? '✓ Ouvert dans Front !' : '📬 Draft Front'}
-                    </button>
-                  )}
+                  {key.startsWith('email') && (() => {
+                    const st = draftState[key] || 'idle';
+                    return (
+                      <button onClick={() => openDraft(text, key)} disabled={st === 'loading'} style={{
+                        fontSize: 12, fontWeight: 600, padding: '5px 11px', borderRadius: 8, border: 'none',
+                        cursor: st === 'loading' ? 'wait' : 'pointer', transition: 'all .15s',
+                        background: st === 'ok' ? '#D1FAE5' : st === 'error' ? C.redLight : '#EDE9FE',
+                        color: st === 'ok' ? C.green : st === 'error' ? C.red : '#5B21B6',
+                      }}>
+                        {st === 'loading' ? '⏳ Création…' : st === 'ok' ? '✓ Ouvert dans Front !' : st === 'error' ? '❌ Erreur Front' : '📬 Draft Front'}
+                      </button>
+                    );
+                  })()}
                   <button onClick={() => copy(text, key)} style={{
                     fontSize: 13, fontWeight: 600, color: copied === key ? C.green : C.purple,
                     background: copied === key ? C.greenLight : C.purpleLight,
