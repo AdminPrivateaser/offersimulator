@@ -370,8 +370,18 @@ app.post('/create-front-draft', async (req, res) => {
     });
     const draft = await dr.json();
     console.log('[Front] draft response:', JSON.stringify(draft).slice(0, 400));
-    if (!draft._links) return res.status(500).json({ error: 'Erreur API Front', details: draft });
-    res.json({ url: draft._links.front || draft._links.self });
+    if (!draft._links && !draft.id) return res.status(500).json({ error: 'Erreur API Front', details: draft });
+
+    // Construire l'URL d'ouverture dans l'app Front (pas l'URL API)
+    let openUrl = draft._links?.front;
+    if (!openUrl) {
+      // Extraire l'ID depuis _links.self ou depuis draft.id
+      const selfUrl = draft._links?.self || '';
+      const match   = selfUrl.match(/\/(conversations|messages)\/([^/?]+)/);
+      const id      = match ? match[2] : (draft.id || '');
+      openUrl = id ? `https://app.frontapp.com/open/${id}` : 'https://app.frontapp.com';
+    }
+    res.json({ url: openUrl });
   } catch (e) {
     console.error('[Front] exception:', e);
     res.status(500).json({ error: e.message });
