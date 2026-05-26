@@ -316,32 +316,28 @@ app.post('/create-front-draft', async (req, res) => {
     let channelId = FRONT_CHANNEL;
     let authorId;
 
-    // Si FRONTAPP_TEST_EMAIL est défini, on force ce channel (mode test)
-    if (TEST_EMAIL && !channelId) {
+    // ── Channel : toujours contact@joy.io (détermine le champ "From") ─────────
+    const FROM_ADDRESS = 'contact@joy.io';
+    if (!channelId) {
       const ch = channels.find(c =>
-        c.settings?.address?.toLowerCase() === TEST_EMAIL.toLowerCase()
+        c.settings?.address?.toLowerCase() === FROM_ADDRESS
       );
       if (ch) channelId = ch.id;
+    }
+
+    // ── Auteur : testEmail en priorité, sinon AM par nom ──────────────────────
+    if (TEST_EMAIL) {
       const tm = teammates.find(t => t.email?.toLowerCase() === TEST_EMAIL.toLowerCase());
       if (tm) authorId = tm.id;
     } else if (amNameReq) {
-      // Trouver le teammate par nom complet
       const tm = teammates.find(t =>
         norm(`${t.first_name} ${t.last_name}`) === norm(amNameReq) ||
         norm(t.username) === norm(amNameReq)
       );
-      if (tm) {
-        authorId = tm.id;
-        if (!channelId && tm.email) {
-          const ch = channels.find(c =>
-            c.settings?.address?.toLowerCase() === tm.email.toLowerCase()
-          );
-          if (ch) channelId = ch.id;
-        }
-      }
+      if (tm) authorId = tm.id;
     }
 
-    // Fallback : premier channel email si rien trouvé
+    // Fallback channel : premier channel email si contact@joy.io introuvable
     if (!channelId) {
       const ch = channels.find(c => ['smtp', 'gmail', 'microsoft365'].includes(c.type))
                || channels.find(c => c.type !== 'custom')
