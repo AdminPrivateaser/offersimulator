@@ -377,6 +377,26 @@ app.post('/create-front-draft', async (req, res) => {
   }
 });
 
+app.get('/front-debug', async (req, res) => {
+  const FRONT_TOKEN = process.env.FRONT_API_KEY;
+  const TEST_EMAIL  = process.env.FRONT_TEST_EMAIL;
+  if (!FRONT_TOKEN) return res.json({ error: 'FRONT_API_KEY non définie sur Railway' });
+  const frontGet = path => fetch(`https://api2.frontapp.com${path}`, {
+    headers: { Authorization: `Bearer ${FRONT_TOKEN}`, Accept: 'application/json' },
+  }).then(r => r.json());
+  try {
+    const [td, cd] = await Promise.all([frontGet('/teammates?limit=100'), frontGet('/channels?limit=100')]);
+    const channels  = (cd._results || []).map(c => ({ id: c.id, type: c.type, address: c.settings?.address }));
+    const teammates = (td._results || []).map(t => ({ id: t.id, name: `${t.first_name} ${t.last_name}`, email: t.email }));
+    const matchedChannel = TEST_EMAIL
+      ? channels.find(c => c.address?.toLowerCase() === TEST_EMAIL.toLowerCase())
+      : null;
+    res.json({ ok: true, TEST_EMAIL, matchedChannel, channels, teammates });
+  } catch (e) {
+    res.json({ error: e.message });
+  }
+});
+
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 3001;
