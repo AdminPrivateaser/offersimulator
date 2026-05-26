@@ -1448,22 +1448,15 @@
                       </button>
                     );
                   })()}
-                  {key.startsWith('email') && (<>
-                    <button onClick={() => openDraft(text, key, 'gmail')} style={{
-                      fontSize: 12, fontWeight: 600, padding: '5px 11px', borderRadius: 8, border: 'none', cursor: 'pointer', transition: 'all .15s',
-                      background: draftOpened === `${key}_gmail` ? '#D1FAE5' : '#FEF3C7',
-                      color: draftOpened === `${key}_gmail` ? C.green : '#92400E',
-                    }}>
-                      {draftOpened === `${key}_gmail` ? '✓ Ouvert !' : '📨 Gmail'}
-                    </button>
+                  {key.startsWith('email') && (
                     <button onClick={() => openDraft(text, key, 'front')} style={{
                       fontSize: 12, fontWeight: 600, padding: '5px 11px', borderRadius: 8, border: 'none', cursor: 'pointer', transition: 'all .15s',
                       background: draftOpened === `${key}_front` ? '#D1FAE5' : '#EDE9FE',
                       color: draftOpened === `${key}_front` ? C.green : '#5B21B6',
                     }}>
-                      {draftOpened === `${key}_front` ? '✓ Ouvert !' : '📬 Front'}
+                      {draftOpened === `${key}_front` ? '✓ Ouvert dans Front !' : '📬 Draft Front'}
                     </button>
-                  </>)}
+                  )}
                   <button onClick={() => copy(text, key)} style={{
                     fontSize: 13, fontWeight: 600, color: copied === key ? C.green : C.purple,
                     background: copied === key ? C.greenLight : C.purpleLight,
