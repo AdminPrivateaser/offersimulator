@@ -287,9 +287,10 @@ app.post('/send-slack', async (req, res) => {
 });
 
 app.post('/create-front-draft', async (req, res) => {
-  const FRONT_TOKEN   = process.env.FRONTAPP_KEY;
+  // Token : header X-Front-Token (localStorage) en priorité, sinon env var
+  const FRONT_TOKEN   = req.headers['x-front-token'] || process.env.FRONTAPP_KEY;
   const FRONT_CHANNEL = process.env.FRONTAPP_CHANNEL_ID;
-  if (!FRONT_TOKEN) return res.status(500).json({ error: 'FRONTAPP_KEY not configured' });
+  if (!FRONT_TOKEN) return res.status(500).json({ error: 'Token Front non configuré' });
 
   const { subject, body, amName: amNameReq } = req.body;
 
