@@ -299,9 +299,9 @@ app.post('/create-front-draft', async (req, res) => {
 
   try {
     const norm = s => (s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    const TEST_EMAIL = process.env.FRONT_TEST_EMAIL; // ex: admin.ops@joy.io (override de test)
 
     // ── 1. Trouver l'AM + son channel perso ──────────────────────────────────
-    // On récupère teammates ET channels en parallèle
     const [td, cd] = await Promise.all([
       frontGet('/teammates?limit=100'),
       frontGet('/channels?limit=100'),
@@ -312,7 +312,15 @@ app.post('/create-front-draft', async (req, res) => {
     let channelId = FRONT_CHANNEL;
     let authorId;
 
-    if (amNameReq) {
+    // Si FRONT_TEST_EMAIL est défini, on force ce channel (mode test)
+    if (TEST_EMAIL && !channelId) {
+      const ch = channels.find(c =>
+        c.settings?.address?.toLowerCase() === TEST_EMAIL.toLowerCase()
+      );
+      if (ch) channelId = ch.id;
+      const tm = teammates.find(t => t.email?.toLowerCase() === TEST_EMAIL.toLowerCase());
+      if (tm) authorId = tm.id;
+    } else if (amNameReq) {
       // Trouver le teammate par nom complet
       const tm = teammates.find(t =>
         norm(`${t.first_name} ${t.last_name}`) === norm(amNameReq) ||
@@ -320,7 +328,6 @@ app.post('/create-front-draft', async (req, res) => {
       );
       if (tm) {
         authorId = tm.id;
-        // Trouver le channel dont l'adresse correspond à l'email du teammate
         if (!channelId && tm.email) {
           const ch = channels.find(c =>
             c.settings?.address?.toLowerCase() === tm.email.toLowerCase()
