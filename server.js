@@ -287,9 +287,9 @@ app.post('/send-slack', async (req, res) => {
 });
 
 app.post('/create-front-draft', async (req, res) => {
-  const FRONT_TOKEN   = process.env.FRONT_API_KEY;
-  const FRONT_CHANNEL = process.env.FRONT_CHANNEL_ID;
-  if (!FRONT_TOKEN) return res.status(500).json({ error: 'FRONT_API_KEY not configured' });
+  const FRONT_TOKEN   = process.env.FRONTAPP_KEY;
+  const FRONT_CHANNEL = process.env.FRONTAPP_CHANNEL_ID;
+  if (!FRONT_TOKEN) return res.status(500).json({ error: 'FRONTAPP_KEY not configured' });
 
   const { subject, body, amName: amNameReq } = req.body;
 
@@ -299,7 +299,7 @@ app.post('/create-front-draft', async (req, res) => {
 
   try {
     const norm = s => (s || '').toLowerCase().replace(/\s+/g, ' ').trim();
-    const TEST_EMAIL = process.env.FRONT_TEST_EMAIL;
+    const TEST_EMAIL = process.env.FRONTAPP_TEST_EMAIL;
 
     // ── 1. Trouver l'AM + son channel perso ──────────────────────────────────
     const [td, cd] = await Promise.all([
@@ -315,7 +315,7 @@ app.post('/create-front-draft', async (req, res) => {
     let channelId = FRONT_CHANNEL;
     let authorId;
 
-    // Si FRONT_TEST_EMAIL est défini, on force ce channel (mode test)
+    // Si FRONTAPP_TEST_EMAIL est défini, on force ce channel (mode test)
     if (TEST_EMAIL && !channelId) {
       const ch = channels.find(c =>
         c.settings?.address?.toLowerCase() === TEST_EMAIL.toLowerCase()
@@ -378,8 +378,8 @@ app.post('/create-front-draft', async (req, res) => {
 });
 
 app.get('/front-debug', async (req, res) => {
-  const FRONT_TOKEN = process.env.FRONT_API_KEY;
-  const TEST_EMAIL  = process.env.FRONT_TEST_EMAIL;
+  const FRONT_TOKEN = process.env.FRONTAPP_KEY;
+  const TEST_EMAIL  = process.env.FRONTAPP_TEST_EMAIL;
 
   // Diagnostic sans révéler la valeur complète
   const allKeys = Object.keys(process.env).sort();
@@ -391,7 +391,7 @@ app.get('/front-debug', async (req, res) => {
     keysContainingFront: allKeys.filter(k => k.toLowerCase().includes('front')),
     allCustomKeys: allKeys.filter(k => !k.startsWith('npm_') && !k.startsWith('NODE') && !k.startsWith('PATH') && !k.startsWith('HOME') && !k.startsWith('PWD') && !k.startsWith('RAILWAY')),
   };
-  if (!FRONT_TOKEN) return res.json({ error: 'FRONT_API_KEY non définie sur Railway', diagnostic: tokenInfo });
+  if (!FRONT_TOKEN) return res.json({ error: 'FRONTAPP_KEY non définie sur Railway', diagnostic: tokenInfo });
   const frontGet = path => fetch(`https://api2.frontapp.com${path}`, {
     headers: { Authorization: `Bearer ${FRONT_TOKEN}`, Accept: 'application/json' },
   }).then(r => r.json());
