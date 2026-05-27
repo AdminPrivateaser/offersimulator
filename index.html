@@ -49,6 +49,172 @@
       text: '#111827', muted: '#6B7280', label: '#9CA3AF',
     };
 
+    // ─── i18n ─────────────────────────────────────────────────────────────────
+    const SPANISH_AMS = ['beatrice', 'béatrice'];
+
+    const TR = {
+      fr: {
+        clientAccount: 'Compte client',
+        subscriptionInfo: "Informations de l'abonnement actuel",
+        sfLink: 'Opportunité Salesforce liée',
+        accountName: 'Nom du compte',
+        negTypeLabel: 'Type de négociation',
+        zoneLabel: 'Zone',
+        currentOffer: 'Offre actuelle',
+        currentARR: 'ARR actuel',
+        currentMRR: 'MRR actuel',
+        renewalDate: 'Date de renouvellement',
+        engagement: 'Engagement',
+        subStart: 'Début de la nouvelle souscription',
+        atRenewal: 'Au moment du renouvellement',
+        earlyRenewal: 'Early renewal — À une date précise',
+        optional: 'optionnel',
+        submit: 'Voir les recommandations →',
+        submitDisabled: 'Complétez les champs obligatoires',
+        fragile: '⚠️ Fragile',
+        healthy: '✅ Sain',
+        performance: 'Performance',
+        recommended: '⭐ Recommandée',
+        notRecommended: 'Non recommandé',
+        catalogue: 'Catalogue',
+        perYear: '/an',
+        perMonth: '/mois',
+        negotiatedPrice: 'Prix négocié',
+        selected: '✓ Sélectionné',
+        choose: 'Choisir →',
+        earlyRenewalDetected: "Early renewal détecté — crédit prorata calculé sur la base d'un contrat annuel débuté le",
+        daysConsumed: 'Jours consommés',
+        days: 'jours',
+        valueConsumed: 'Valeur consommée',
+        onOldContract: "sur l'ancien contrat",
+        prorataCredit: 'Crédit prorata',
+        deductFromNew: 'à déduire du nouveau contrat',
+        paymentMode: 'Mode de paiement',
+        paymentSubtitle: 'Choisissez la modalité de règlement',
+        upfrontTitle: 'Annuel upfront',
+        upfrontSub: 'Règlement en 1, 2 ou 3 fois',
+        amountBilled: 'Montant facturé',
+        negotiatedPriceLbl: 'Prix négocié',
+        prorataCredit2: 'Crédit prorata',
+        toSettle: 'À régler',
+        cataloguePrice: 'Prix catalogue :',
+        extraCost: 'Surcoût vs upfront :',
+        installmentDetail: 'Détail des versements',
+        installment: 'Versement',
+        covered: '✓ couvert',
+        faciliteTitle: 'Annuel facilité 12×',
+        faciliteSub: '2×20% puis 10×6%',
+        notAllowed: 'Non autorisé (Basic)',
+        facilitePriceLbl: 'Prix facilité',
+        schedule: 'Échéancier',
+        scheduleAfterCredit: 'Échéancier (après crédit)',
+        firstInstallment: '1ère échéance (20%)',
+        secondInstallment: '2ème échéance (20%)',
+        monthlyInstallments: '6% × 10 mensualités',
+        perMonthSuffix: '/mois',
+        nth: (n) => n === 0 ? '1ère échéance (20%)' : n === 1 ? '2ème échéance (20%)' : `Mois ${n+1} (6%)`,
+        selectMode: 'Sélectionner ce mode →',
+        selectedMode: '✓ Mode sélectionné — Voir le résumé ↓',
+        proposeInstallment: '📅 Proposer un paiement échelonné',
+        showFacilite: "💰 Afficher l'option Confort Cash-flow",
+        resetTo1: '🔄 Réinitialiser à 1 fois',
+        backToClassic: '🔄 Revenir au paiement classique',
+        times: (n) => `${n} fois`,
+        commSupports: 'Supports de communication',
+        commSubtitle: 'CR manager & email client prêts à copier',
+        validationRequired: 'Validation manager requise avant contact client',
+        sendSlackFirst: "Envoyez d'abord le CR Slack et attendez le feu vert.",
+        emailTu: 'Email — Tutoiement',
+        emailVou: 'Email — Vouvoiement',
+        copy: 'Copier',
+        copied: '✓ Copié !',
+        forInfo: 'Pour info',
+        validationBadge: 'Validation requise',
+        negTypes: ['Renouvellement', 'Incoming Churn', 'Up-sell', 'Down-sell', 'First Contact'],
+        dateLocale: 'fr-FR',
+      },
+      es: {
+        clientAccount: 'Cuenta cliente',
+        subscriptionInfo: 'Información de la suscripción actual',
+        sfLink: 'Oportunidad de Salesforce vinculada',
+        accountName: 'Nombre de la cuenta',
+        negTypeLabel: 'Tipo de negociación',
+        zoneLabel: 'Zone',
+        currentOffer: 'Oferta actual',
+        currentARR: 'ARR actual',
+        currentMRR: 'MRR actual',
+        renewalDate: 'Fecha de renovación',
+        engagement: 'Engagement',
+        subStart: 'Inicio de la nueva suscripción',
+        atRenewal: 'En el momento de la renovación',
+        earlyRenewal: 'Early renewal — A una fecha concreta',
+        optional: 'opcional',
+        submit: 'Ver las recomendaciones →',
+        submitDisabled: 'Complete los campos obligatorios',
+        fragile: '⚠️ Frágil',
+        healthy: '✅ Sano',
+        performance: 'Performance',
+        recommended: '⭐ Recomendada',
+        notRecommended: 'No recomendado',
+        catalogue: 'Catálogo',
+        perYear: '/año',
+        perMonth: '/mes',
+        negotiatedPrice: 'Precio negociado',
+        selected: '✓ Seleccionado',
+        choose: 'Elegir →',
+        earlyRenewalDetected: 'Early renewal detectado — crédito prorrata calculado en base a un contrato anual iniciado el',
+        daysConsumed: 'Días consumidos',
+        days: 'días',
+        valueConsumed: 'Valor consumido',
+        onOldContract: 'en el contrato anterior',
+        prorataCredit: 'Crédito prorrata',
+        deductFromNew: 'a deducir del nuevo contrato',
+        paymentMode: 'Modalidad de pago',
+        paymentSubtitle: 'Elige la modalidad de pago',
+        upfrontTitle: 'Anual upfront',
+        upfrontSub: 'Pago en 1, 2 o 3 veces',
+        amountBilled: 'Importe facturado',
+        negotiatedPriceLbl: 'Precio negociado',
+        prorataCredit2: 'Crédito prorrata',
+        toSettle: 'A pagar',
+        cataloguePrice: 'Precio catálogo:',
+        extraCost: 'Coste extra vs upfront:',
+        installmentDetail: 'Detalle de los pagos',
+        installment: 'Pago',
+        covered: '✓ cubierto',
+        faciliteTitle: 'Anual facilidad 12×',
+        faciliteSub: '2×20% luego 10×6%',
+        notAllowed: 'No autorizado (Basic)',
+        facilitePriceLbl: 'Precio facilidad',
+        schedule: 'Calendario de pagos',
+        scheduleAfterCredit: 'Calendario de pagos (tras crédito)',
+        firstInstallment: '1er pago (20%)',
+        secondInstallment: '2º pago (20%)',
+        monthlyInstallments: '6% × 10 mensualidades',
+        perMonthSuffix: '/mes',
+        nth: (n) => n === 0 ? '1er pago (20%)' : n === 1 ? '2º pago (20%)' : `Mes ${n+1} (6%)`,
+        selectMode: 'Seleccionar este modo →',
+        selectedMode: '✓ Modo seleccionado — Ver el resumen ↓',
+        proposeInstallment: '📅 Proponer pago fraccionado',
+        showFacilite: '💰 Mostrar la opción Confort Cash-flow',
+        resetTo1: '🔄 Restablecer a 1 vez',
+        backToClassic: '🔄 Volver al pago clásico',
+        times: (n) => `${n} ${n === 1 ? 'vez' : 'veces'}`,
+        commSupports: 'Materiales de comunicación',
+        commSubtitle: 'CR manager y email cliente listos para copiar',
+        validationRequired: 'Validación del manager requerida antes de contactar al cliente',
+        sendSlackFirst: 'Enviad primero el CR Slack y esperad el visto bueno.',
+        emailTu: 'Email — Tuteo',
+        emailVou: 'Email — Usted',
+        copy: 'Copiar',
+        copied: '✓ ¡Copiado!',
+        forInfo: 'Para info',
+        validationBadge: 'Validación requerida',
+        negTypes: ['Renovación', 'Incoming Churn', 'Up-sell', 'Down-sell', 'First Contact'],
+        dateLocale: 'es-ES',
+      },
+    };
+
     // ─── Référentiel ──────────────────────────────────────────────────────────
     const OFFER_KEYS  = ['joy-only', 'basic', 'advanced', 'expert', 'e1', 'e2', 'e3'];
     const OFFER_NAMES = { 'joy-only': 'Joy Only', basic: 'Basic', advanced: 'Advanced', expert: 'Expert', e1: 'Enterprise 1', e2: 'Enterprise 2', e3: 'Enterprise 3' };
@@ -215,7 +381,7 @@
     };
 
     // ─── Prorata ──────────────────────────────────────────────────────────────
-    function computeProrata(form) {
+    function computeProrata(form, dateLocale = 'fr-FR') {
       if (form.subStart !== 'early' || !form.subStartDate || !form.nextBilling || !form.mrr) return null;
       const mrr = parseFloat(form.mrr);
       if (!mrr || mrr <= 0) return null;
@@ -238,7 +404,7 @@
       return {
         totalDays, consumedDays, remainingDays, annualValue,
         consumedValue, creditValue,
-        startDateStr: startDate.toLocaleDateString('fr-FR'),
+        startDateStr: startDate.toLocaleDateString(dateLocale),
       };
     }
 
@@ -398,7 +564,8 @@
       subStart: '', subStartDate: '',
     };
 
-    function ClientForm({ form, onChange, onSubmit, amMapping }) {
+    function ClientForm({ form, onChange, onSubmit, amMapping, lang }) {
+      const t = TR[lang];
       const hsNum    = parseInt(form.healthScore);
       const hsOk     = !isNaN(hsNum) && hsNum >= 0;
       const canSubmit = form.account && form.ae && form.offer && form.mrr && hsOk && form.band;
@@ -411,8 +578,8 @@
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
               <SectionIcon color={C.purple}>📋</SectionIcon>
               <div>
-                <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>Compte client</p>
-                <p style={{ fontSize: 12, color: C.muted }}>Informations de l'abonnement actuel</p>
+                <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>{t.clientAccount}</p>
+                <p style={{ fontSize: 12, color: C.muted }}>{t.subscriptionInfo}</p>
               </div>
             </div>
 
@@ -420,13 +587,13 @@
               <a href={`${SF_BASE_URL}/lightning/r/Opportunity/${form.oppId}/view`} target="_blank" rel="noreferrer"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 16, padding: '7px 14px', borderRadius: 10, background: '#EFF6FF', border: '1.5px solid #BFDBFE', color: '#1D4ED8', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
                 <span style={{ fontSize: 15 }}>🔗</span>
-                Opportunité Salesforce liée
+                {t.sfLink}
                 <span style={{ fontSize: 11, opacity: 0.7, fontWeight: 400 }}>{form.oppId}</span>
               </a>
             )}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div style={{ gridColumn: '1 / -1' }}>
-                <Label>Nom du compte</Label>
+                <Label>{t.accountName}</Label>
                 <input style={inputStyle} placeholder="Le Perchoir Paris" value={form.account} onChange={e => onChange('account', e.target.value)} />
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
@@ -441,24 +608,25 @@
               <div style={{ gridColumn: '1 / -1', background: C.coralLight, border: `1.5px solid ${C.coralMid}`, borderRadius: 14, padding: '14px 16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
                   <span style={{ fontSize: 15 }}>🎯</span>
-                  <Label style={{ margin: 0, color: C.coral, fontWeight: 700 }}>Type de négociation</Label>
+                  <Label style={{ margin: 0, color: C.coral, fontWeight: 700 }}>{t.negTypeLabel}</Label>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {NEG_TYPES.map(t => (
-                    <button key={t} onClick={() => onChange('negType', form.negType === t ? '' : t)} style={{
+                  {t.negTypes.map(nt => (
+                    <button key={nt} onClick={() => onChange('negType', form.negType === nt ? '' : nt)} style={{
                       padding: '8px 16px', borderRadius: 20, fontSize: 13, fontWeight: 600,
-                      border: `1.5px solid ${form.negType === t ? C.coral : '#F9C4B4'}`,
-                      background: form.negType === t ? C.coral : 'white',
-                      color: form.negType === t ? 'white' : C.coral,
+                      border: `1.5px solid ${form.negType === nt ? C.coral : '#F9C4B4'}`,
+                      background: form.negType === nt ? C.coral : 'white',
+                      color: form.negType === nt ? 'white' : C.coral,
                       cursor: 'pointer', transition: 'all .15s',
-                      boxShadow: form.negType === t ? '0 2px 8px rgba(240,122,90,.3)' : 'none',
-                    }}>{t}</button>
+                      boxShadow: form.negType === nt ? '0 2px 8px rgba(240,122,90,.3)' : 'none',
+                    }}>{nt}</button>
                   ))}
                 </div>
               </div>
 
+              {lang !== 'es' && (
               <div>
-                <Label>Zone</Label>
+                <Label>{t.zoneLabel}</Label>
                 <div style={{ display: 'flex', gap: 6 }}>
                   {['A', 'B', 'C'].map(z => (
                     <button key={z} onClick={() => onChange('zone', z)} style={{
@@ -471,16 +639,17 @@
                   ))}
                 </div>
               </div>
+              )}
 
               <div>
-                <Label>Offre actuelle</Label>
+                <Label>{t.currentOffer}</Label>
                 <select style={{ ...inputStyle, paddingRight: 32 }} value={form.offer} onChange={e => onChange('offer', e.target.value)}>
                   {OFFER_KEYS.map(k => <option key={k} value={k}>{OFFER_NAMES[k]}</option>)}
                 </select>
               </div>
 
               <div>
-                <Label>ARR actuel <span style={{ color: C.label, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>· optionnel</span></Label>
+                <Label>{t.currentARR} <span style={{ color: C.label, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>· {t.optional}</span></Label>
                 <div style={{ position: 'relative' }}>
                   <input style={{ ...inputStyle, paddingRight: 28 }} type="number" placeholder="3990" value={form.arr} onChange={e => onChange('arr', e.target.value)} />
                   <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: C.label }}>€</span>
@@ -491,7 +660,7 @@
               </div>
 
               <div>
-                <Label>MRR actuel</Label>
+                <Label>{t.currentMRR}</Label>
                 <div style={{ position: 'relative' }}>
                   <input style={{ ...inputStyle, paddingRight: 42 }} type="number" placeholder="333" value={form.mrr} onChange={e => onChange('mrr', e.target.value)} />
                   <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: C.label }}>€/mois</span>
@@ -499,12 +668,12 @@
               </div>
 
               <div>
-                <Label>Date de renouvellement <span style={{ color: C.label, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>· optionnel</span></Label>
+                <Label>{t.renewalDate} <span style={{ color: C.label, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>· {t.optional}</span></Label>
                 <input style={inputStyle} type="date" value={form.nextBilling} onChange={e => onChange('nextBilling', e.target.value)} />
               </div>
 
               <div style={{ gridColumn: '1 / -1' }}>
-                <Label>Engagement <span style={{ color: C.label, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>· optionnel</span></Label>
+                <Label>{t.engagement} <span style={{ color: C.label, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>· {t.optional}</span></Label>
                 <select style={{ ...inputStyle, paddingRight: 32 }} value={form.engagement} onChange={e => onChange('engagement', e.target.value)}>
                   <option value="">—</option>
                   {ENGAGEMENT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -512,11 +681,11 @@
               </div>
 
               <div style={{ gridColumn: '1 / -1' }}>
-                <Label>Début de la nouvelle souscription <span style={{ color: C.label, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>· optionnel</span></Label>
+                <Label>{t.subStart} <span style={{ color: C.label, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>· {t.optional}</span></Label>
                 <select style={{ ...inputStyle, paddingRight: 32 }} value={form.subStart} onChange={e => onChange('subStart', e.target.value)}>
                   <option value="">—</option>
-                  <option value="renewal">Au moment du renouvellement</option>
-                  <option value="early">Early renewal — À une date précise</option>
+                  <option value="renewal">{t.atRenewal}</option>
+                  <option value="early">{t.earlyRenewal}</option>
                 </select>
                 {form.subStart === 'early' && (
                   <input
@@ -535,7 +704,7 @@
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
                 <SectionIcon color={C.coral}>📈</SectionIcon>
                 <div>
-                  <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>Performance</p>
+                  <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>{t.performance}</p>
                   <p style={{ fontSize: 12, color: C.muted }}>Health Score & Pageviews Search</p>
                 </div>
               </div>
@@ -560,7 +729,7 @@
                     color: hsNum <= 70 ? C.coral : C.green,
                     border: `1px solid ${hsNum <= 70 ? C.coralMid : '#A7F3D0'}`,
                   }}>
-                    {hsNum <= 70 ? '⚠️ Fragile' : '✅ Sain'}
+                    {hsNum <= 70 ? t.fragile : t.healthy}
                   </div>
                 )}
               </div>
@@ -597,7 +766,7 @@
               boxShadow: canSubmit ? `0 4px 16px ${C.purple}44` : 'none',
               letterSpacing: '.02em',
             }}>
-              {canSubmit ? 'Voir les recommandations →' : 'Complétez les champs obligatoires'}
+              {canSubmit ? t.submit : t.submitDisabled}
             </button>
           </div>
         </div>
@@ -605,7 +774,8 @@
     }
 
     // ─── Étape 2 : Scénarios ──────────────────────────────────────────────────
-    function ScenarioCard({ scenario, discount, onDiscountChange, zone, isSelected, onSelect }) {
+    function ScenarioCard({ scenario, discount, onDiscountChange, zone, isSelected, onSelect, lang }) {
+      const t = TR[lang];
       const { offer, label, recommended, rules, notRecommended, rank } = scenario;
       const catalog    = PRICING[zone]?.upfront?.[offer] ?? 0;
       const negotiated = catalog * (1 - discount / 100);
@@ -620,8 +790,8 @@
         }}>
           {(recommended || notRecommended) && (
             <div style={{ position: 'absolute', top: -12, left: 16 }}>
-              {recommended && <span style={{ background: C.coral, color: 'white', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>⭐ Recommandée</span>}
-              {notRecommended && <span style={{ background: C.label, color: 'white', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>Non recommandé</span>}
+              {recommended && <span style={{ background: C.coral, color: 'white', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>{t.recommended}</span>}
+              {notRecommended && <span style={{ background: C.label, color: 'white', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>{t.notRecommended}</span>}
             </div>
           )}
 
@@ -631,7 +801,7 @@
               <StatusBadge status={status} />
             </div>
             <p style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
-              Catalogue <span style={{ fontWeight: 600, color: discount > 0 ? C.coral : C.muted, textDecoration: discount > 0 ? 'line-through' : 'none' }}>{fmt(catalog)}/an</span>
+              {t.catalogue} <span style={{ fontWeight: 600, color: discount > 0 ? C.coral : C.muted, textDecoration: discount > 0 ? 'line-through' : 'none' }}>{fmt(catalog)}{t.perYear}</span>
             </p>
           </div>
 
@@ -641,9 +811,9 @@
 
           <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 14, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
             <div>
-              <Label>Prix négocié</Label>
-              <p style={{ fontSize: 24, fontWeight: 900, color: C.text }}>{fmt(negotiated)}<span style={{ fontSize: 12, fontWeight: 400, color: C.muted }}>/an</span></p>
-              <p style={{ fontSize: 11, color: C.muted }}>{fmt(negotiated / 12)}/mois</p>
+              <Label>{t.negotiatedPrice}</Label>
+              <p style={{ fontSize: 24, fontWeight: 900, color: C.text }}>{fmt(negotiated)}<span style={{ fontSize: 12, fontWeight: 400, color: C.muted }}>{t.perYear}</span></p>
+              <p style={{ fontSize: 11, color: C.muted }}>{fmt(negotiated / 12)}{t.perMonth}</p>
             </div>
             {!notRecommended && (
               <button onClick={() => onSelect(rank - 1)} style={{
@@ -652,7 +822,7 @@
                 background: isSelected ? C.purple : C.text, color: 'white',
                 boxShadow: isSelected ? `0 4px 12px ${C.purple}44` : 'none',
               }}>
-                {isSelected ? '✓ Sélectionné' : 'Choisir →'}
+                {isSelected ? t.selected : t.choose}
               </button>
             )}
           </div>
@@ -661,17 +831,18 @@
     }
 
     // ─── Prorata Banner ───────────────────────────────────────────────────────
-    function ProrataBanner({ prorata }) {
+    function ProrataBanner({ prorata, lang }) {
+      const t = TR[lang];
       return (
         <div style={{ marginBottom: 20 }}>
           <div style={{ background: C.purpleLight, border: `1px solid ${C.purpleMid}`, borderRadius: 12, padding: '10px 16px', marginBottom: 12, fontSize: 12, color: C.purple, fontWeight: 500 }}>
-            ⚡ Early renewal détecté — crédit prorata calculé sur la base d'un contrat annuel débuté le {prorata.startDateStr}
+            ⚡ {t.earlyRenewalDetected} {prorata.startDateStr}
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
             {[
-              { label: 'Jours consommés', value: String(prorata.consumedDays), sub: `/ ${prorata.totalDays} jours`, hi: false },
-              { label: 'Valeur consommée', value: fmtDec(prorata.consumedValue), sub: 'sur l\'ancien contrat', hi: false },
-              { label: 'Crédit prorata', value: fmtDec(prorata.creditValue), sub: 'à déduire du nouveau contrat', hi: true },
+              { label: t.daysConsumed, value: String(prorata.consumedDays), sub: `/ ${prorata.totalDays} ${t.days}`, hi: false },
+              { label: t.valueConsumed, value: fmtDec(prorata.consumedValue), sub: t.onOldContract, hi: false },
+              { label: t.prorataCredit, value: fmtDec(prorata.creditValue), sub: t.deductFromNew, hi: true },
             ].map((s, i) => (
               <div key={i} style={{
                 flex: 1, borderRadius: 14, padding: '16px 20px', textAlign: 'center',
@@ -717,7 +888,8 @@
     }
 
     // ─── Étape 3 : Paiement ───────────────────────────────────────────────────
-    function PaymentSection({ scenario, discountValue, onDiscountChange, discountFacilite, onDiscountFaciliteChange, zone, selectedPayment, onPaymentSelect, prorata, demoMode, startDate, upfrontTimes, setUpfrontTimes }) {
+    function PaymentSection({ scenario, discountValue, onDiscountChange, discountFacilite, onDiscountFaciliteChange, zone, selectedPayment, onPaymentSelect, prorata, demoMode, startDate, upfrontTimes, setUpfrontTimes, lang }) {
+      const t = TR[lang];
       const [demoShowInstallments, setDemoShowInstallments] = useState(false);
       const [demoShowFacilite,     setDemoShowFacilite]     = useState(false);
 
@@ -774,15 +946,15 @@
       };
       const barLabel = mo => {
         if (!startDate) return mo === 0 ? 'Éch. 1' : `M+${mo}`;
-        return addMonths(mo).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+        return addMonths(mo).toLocaleDateString(t.dateLocale, { day: 'numeric', month: 'short' });
       };
       const barTooltip = mo => {
         if (!startDate) return mo === 0 ? 'Date de renouvellement' : `+${mo} mois`;
-        return addMonths(mo).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+        return addMonths(mo).toLocaleDateString(t.dateLocale, { day: 'numeric', month: 'long', year: 'numeric' });
       };
       const barShortDate = mo => {
         if (!startDate) return '';
-        return addMonths(mo).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+        return addMonths(mo).toLocaleDateString(t.dateLocale, { day: '2-digit', month: '2-digit' });
       };
       const upfrontMonthOffsets = { 1: [0], 2: [0, 1], 3: [0, 1, 2] }[upfrontTimes];
 
@@ -815,12 +987,12 @@
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
             <SectionIcon color={C.purple}>💳</SectionIcon>
             <div>
-              <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>Mode de paiement</p>
-              <p style={{ fontSize: 12, color: C.muted }}>Choisissez la modalité de règlement</p>
+              <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>{t.paymentMode}</p>
+              <p style={{ fontSize: 12, color: C.muted }}>{t.paymentSubtitle}</p>
             </div>
           </div>
 
-          {prorata && <ProrataBanner prorata={prorata} />}
+          {prorata && <ProrataBanner prorata={prorata} lang={lang} />}
 
           <div style={{ display: 'flex', gap: 16 }}>
 
@@ -829,33 +1001,33 @@
             <div style={{ ...cardBase(selectedPayment === 'upfront', false), flex: demoMode && demoShowFacilite ? 'unset' : 1 }} onClick={() => onPaymentSelect('upfront')}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                 <div>
-                  <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>Annuel upfront</p>
-                  <p style={{ fontSize: 12, color: C.muted }}>Règlement en 1, 2 ou 3 fois</p>
+                  <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>{t.upfrontTitle}</p>
+                  <p style={{ fontSize: 12, color: C.muted }}>{t.upfrontSub}</p>
                 </div>
                 {discountValue > 0 && <span style={{ background: C.greenLight, color: C.green, border: `1px solid #A7F3D0`, borderRadius: 8, fontSize: 11, fontWeight: 700, padding: '3px 8px' }}>−{discountValue}%</span>}
               </div>
 
-              <Label>Montant facturé</Label>
+              <Label>{t.amountBilled}</Label>
               {/* Prix avec ou sans prorata */}
               {credit > 0 ? (
                 <div style={{ background: '#F9FAFB', borderRadius: 12, padding: '12px 16px', marginBottom: 8 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <span style={{ fontSize: 13, color: C.muted }}>Prix négocié</span>
+                    <span style={{ fontSize: 13, color: C.muted }}>{t.negotiatedPriceLbl}</span>
                     <span style={{ fontSize: 13, color: C.muted, textDecoration: 'line-through' }}>{fmtDec(negotiated)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 8, borderBottom: `1px solid ${C.border}`, marginBottom: 8 }}>
-                    <span style={{ fontSize: 13, color: C.coral, fontWeight: 600 }}>Crédit prorata</span>
+                    <span style={{ fontSize: 13, color: C.coral, fontWeight: 600 }}>{t.prorataCredit2}</span>
                     <span style={{ fontSize: 13, color: C.coral, fontWeight: 700 }}>− {fmtDec(credit)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>À régler</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{t.toSettle}</span>
                     <span style={{ fontSize: 20, fontWeight: 900, color: C.purple }}>{fmtDec(upfrontFinal)} HT</span>
                   </div>
                 </div>
               ) : (
                 <>
                   <p style={{ fontSize: 32, fontWeight: 900, color: C.purple }}>{fmtDec(negotiated)} HT</p>
-                  {discountValue > 0 && <p style={{ fontSize: 12, color: C.coral, textDecoration: 'line-through', marginTop: 2 }}>Prix catalogue : {fmt(catalog)}</p>}
+                  {discountValue > 0 && <p style={{ fontSize: 12, color: C.coral, textDecoration: 'line-through', marginTop: 2 }}>{t.cataloguePrice} {fmt(catalog)}</p>}
                 </>
               )}
 
@@ -878,21 +1050,21 @@
                       color: upfrontTimes === n ? C.text : C.muted,
                       boxShadow: upfrontTimes === n ? '0 1px 4px rgba(0,0,0,.08)' : 'none',
                     }}>
-                      {n} fois
+                      {t.times(n)}
                     </button>
                   ))}
                 </div>
               )}
 
-              <Label>Détail des versements</Label>
+              <Label>{t.installmentDetail}</Label>
               {upfrontCredited.map((v, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < upfrontCredited.length - 1 ? `1px solid ${C.border}` : 'none' }}>
                   <span style={{ fontSize: 13, color: C.muted }}>
-                    Versement {i + 1}
+                    {t.installment} {i + 1}
                     {barShortDate(upfrontMonthOffsets[i]) && <span style={{ fontSize: 11, color: C.label }}> · {barShortDate(upfrontMonthOffsets[i])}</span>}
                   </span>
                   {v.net === 0 ? (
-                    <span style={{ fontSize: 13, fontWeight: 700, color: C.green }}>✓ couvert</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: C.green }}>{t.covered}</span>
                   ) : (
                     <div style={{ textAlign: 'right' }}>
                       {v.covered > 0 && <div style={{ fontSize: 11, color: C.muted, textDecoration: 'line-through' }}>{fmtDec(v.raw)} HT</div>}
@@ -912,21 +1084,21 @@
                       padding: '11px 16px', borderRadius: 12, fontSize: 13, fontWeight: 700,
                       border: `2px solid #6366F1`, background: '#EEF2FF', color: '#6366F1',
                       cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
-                    }}>📅 Proposer un paiement échelonné</button>
+                    }}>{t.proposeInstallment}</button>
                   )}
                   {canFacilite && (
                     <button onClick={() => { setDemoShowFacilite(true); setDemoShowInstallments(false); setUpfrontTimes(1); }} style={{
                       padding: '11px 16px', borderRadius: 12, fontSize: 13, fontWeight: 700,
                       border: `2px solid #F07A5A`, background: '#FFF1EE', color: '#F07A5A',
                       cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
-                    }}>💰 Afficher l'option Confort Cash-flow</button>
+                    }}>{t.showFacilite}</button>
                   )}
                   {demoShowInstallments && (
                     <button onClick={() => { setDemoShowInstallments(false); setUpfrontTimes(1); }} style={{
                       padding: '9px 16px', borderRadius: 12, fontSize: 12, fontWeight: 600,
                       border: `1px solid #E4E4F0`, background: '#F9FAFB', color: '#6B7280',
                       cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-                    }}>🔄 Réinitialiser à 1 fois</button>
+                    }}>{t.resetTo1}</button>
                   )}
                 </div>
               )}
@@ -939,7 +1111,7 @@
                   background: selectedPayment === 'upfront' ? '#6366F1' : '#111827', color: 'white',
                   boxShadow: selectedPayment === 'upfront' ? '0 4px 12px #6366F144' : 'none',
                 }}>
-                  {selectedPayment === 'upfront' ? '✓ Mode sélectionné — Voir le résumé ↓' : 'Sélectionner ce mode →'}
+                  {selectedPayment === 'upfront' ? t.selectedMode : t.selectMode}
                 </button>
               </div>
             </div>
@@ -950,40 +1122,40 @@
             <div style={cardBase(selectedPayment === 'facilite', !canFacilite)} onClick={() => canFacilite && onPaymentSelect('facilite')}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                 <div>
-                  <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>Annuel facilité 12×</p>
-                  <p style={{ fontSize: 12, color: C.muted }}>2×20% puis 10×6%</p>
+                  <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>{t.faciliteTitle}</p>
+                  <p style={{ fontSize: 12, color: C.muted }}>{t.faciliteSub}</p>
                 </div>
                 {!canFacilite
-                  ? <span style={{ background: C.redLight, color: C.red, border: `1px solid #FECACA`, borderRadius: 8, fontSize: 11, fontWeight: 700, padding: '3px 8px' }}>Non autorisé (Basic)</span>
+                  ? <span style={{ background: C.redLight, color: C.red, border: `1px solid #FECACA`, borderRadius: 8, fontSize: 11, fontWeight: 700, padding: '3px 8px' }}>{t.notAllowed}</span>
                   : discountFacilite > 0
                     ? <span style={{ background: C.greenLight, color: C.green, border: `1px solid #A7F3D0`, borderRadius: 8, fontSize: 11, fontWeight: 700, padding: '3px 8px' }}>−{discountFacilite}%</span>
                     : null
                 }
               </div>
 
-              <Label>Montant facturé</Label>
+              <Label>{t.amountBilled}</Label>
               {credit > 0 && canFacilite ? (
                 <div style={{ background: '#F9FAFB', borderRadius: 12, padding: '12px 16px', marginBottom: 8 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <span style={{ fontSize: 13, color: C.muted }}>Prix facilité</span>
+                    <span style={{ fontSize: 13, color: C.muted }}>{t.facilitePriceLbl}</span>
                     <span style={{ fontSize: 13, color: C.muted, textDecoration: 'line-through' }}>{fmtDec(faciliteNet)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 8, borderBottom: `1px solid ${C.border}`, marginBottom: 8 }}>
-                    <span style={{ fontSize: 13, color: C.coral, fontWeight: 600 }}>Crédit prorata</span>
+                    <span style={{ fontSize: 13, color: C.coral, fontWeight: 600 }}>{t.prorataCredit2}</span>
                     <span style={{ fontSize: 13, color: C.coral, fontWeight: 700 }}>− {fmtDec(credit)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>À régler</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{t.toSettle}</span>
                     <span style={{ fontSize: 20, fontWeight: 900, color: C.coral }}>{fmtDec(faciliteFinal)} HT</span>
                   </div>
                 </div>
               ) : (
                 <>
                   <p style={{ fontSize: 32, fontWeight: 900, color: C.coral }}>{fmtDec(faciliteNet)} HT</p>
-                  {discountFacilite > 0 && <p style={{ fontSize: 12, color: C.coral, textDecoration: 'line-through', marginTop: 2 }}>Prix catalogue : {fmt(facilite)}</p>}
+                  {discountFacilite > 0 && <p style={{ fontSize: 12, color: C.coral, textDecoration: 'line-through', marginTop: 2 }}>{t.cataloguePrice} {fmt(facilite)}</p>}
                 </>
               )}
-              {canFacilite && !demoMode && <p style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>Surcoût vs upfront : <span style={{ color: surplus > 0 ? C.coral : C.green, fontWeight: 600 }}>{surplus > 0 ? '+' : ''}{fmt(surplus)}</span></p>}
+              {canFacilite && !demoMode && <p style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{t.extraCost} <span style={{ color: surplus > 0 ? C.coral : C.green, fontWeight: 600 }}>{surplus > 0 ? '+' : ''}{fmt(surplus)}</span></p>}
 
               {/* Discount facilité */}
               {canFacilite && (
@@ -994,16 +1166,16 @@
 
               {/* Résumé échéancier */}
               <div style={{ marginTop: canFacilite ? 4 : 20 }}>
-                <Label>Échéancier{credit > 0 && canFacilite ? ' (après crédit)' : ''}</Label>
+                <Label>{credit > 0 && canFacilite ? t.scheduleAfterCredit : t.schedule}</Label>
                 {credit > 0 && canFacilite ? (
                   <div style={{ maxHeight: 220, overflowY: 'auto' }}>
                     {faciliteMonths.map((m, i) => (
                       <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: i < 11 ? `1px solid ${C.border}` : 'none' }}>
                         <span style={{ fontSize: 12, color: C.muted }}>
-                          {i === 0 ? '1ère échéance (20%)' : i === 1 ? '2ème échéance (20%)' : `Mois ${i + 1} (6%)`}
+                          {t.nth(i)}
                         </span>
                         {m.net === 0 ? (
-                          <span style={{ fontSize: 12, fontWeight: 700, color: C.green }}>✓ couvert</span>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: C.green }}>{t.covered}</span>
                         ) : (
                           <div style={{ textAlign: 'right' }}>
                             {m.covered > 0 && <div style={{ fontSize: 10, color: C.muted, textDecoration: 'line-through' }}>{fmtDec(m.raw)} HT</div>}
@@ -1015,9 +1187,9 @@
                   </div>
                 ) : (
                   [
-                    { label: '1ère échéance (20%)', amount: m1Raw, bold: true },
-                    { label: '2ème échéance (20%)', amount: m1Raw, bold: true },
-                    { label: '6% × 10 mensualités', amount: mRestRaw, suffix: '/mois', bold: false },
+                    { label: t.firstInstallment, amount: m1Raw, bold: true },
+                    { label: t.secondInstallment, amount: m1Raw, bold: true },
+                    { label: t.monthlyInstallments, amount: mRestRaw, suffix: t.perMonthSuffix, bold: false },
                   ].map((r, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 0', borderBottom: i < 2 ? `1px solid ${C.border}` : 'none' }}>
                       <span style={{ fontSize: 13, color: C.muted }}>{r.label}</span>
@@ -1035,7 +1207,7 @@
                   <button onClick={() => { setDemoShowFacilite(false); setDemoShowInstallments(false); setUpfrontTimes(1); }} style={{
                     width: '100%', padding: '9px 0', borderRadius: 10, fontSize: 12, fontWeight: 600,
                     border: `1px solid #E4E4F0`, background: '#F9FAFB', color: '#6B7280', cursor: 'pointer',
-                  }}>🔄 Revenir au paiement classique</button>
+                  }}>{t.backToClassic}</button>
                 </div>
               )}
 
@@ -1047,7 +1219,7 @@
                     background: selectedPayment === 'facilite' ? '#6366F1' : '#111827', color: 'white',
                     boxShadow: selectedPayment === 'facilite' ? '0 4px 12px #6366F144' : 'none',
                   }}>
-                    {selectedPayment === 'facilite' ? '✓ Mode sélectionné — Voir le résumé ↓' : 'Sélectionner ce mode →'}
+                    {selectedPayment === 'facilite' ? t.selectedMode : t.selectMode}
                   </button>
                 </div>
               )}
@@ -1117,7 +1289,9 @@
     }
 
     // ─── Étape 4 : Output ────────────────────────────────────────────────────
-    function OutputSection({ form, scenario, discountValue, discountFacilite, payment, prorata, demoMode, upfrontTimes = 1, amName }) {
+    function OutputSection({ form, scenario, discountValue, discountFacilite, payment, prorata, demoMode, upfrontTimes = 1, amName, lang, zone: zoneProp }) {
+      const t = TR[lang];
+      const zone = zoneProp || form.zone;
       const [copied,         setCopied]         = useState(null);
       const [editedSlack,    setEditedSlack]    = useState(null);
       const [editedEmailTu,  setEditedEmailTu]  = useState(null);
@@ -1141,9 +1315,9 @@
           .catch(() => { setRawTemplates({ tutoiement: null, vouvoiement: null }); setTplLoading(false); });
       }, [amName, form.negType]);
       const { offer, rules, notRecommended, label: scenarioLabel } = scenario;
-      const catalog        = PRICING[form.zone]?.upfront?.[offer] ?? 0;
+      const catalog        = PRICING[zone]?.upfront?.[offer] ?? 0;
       const negotiated     = catalog * (1 - discountValue / 100);
-      const facilite       = PRICING[form.zone]?.facilite?.[offer] ?? 0;
+      const facilite       = PRICING[zone]?.facilite?.[offer] ?? 0;
       const faciliteNet    = facilite * (1 - discountFacilite / 100);
       const credit         = prorata?.creditValue ?? 0;
       const upfrontFinal   = Math.max(0, negotiated - credit);
@@ -1167,17 +1341,17 @@
       const fmtDateLong = s => {
         if (!s) return '—';
         const d = new Date(s + 'T00:00:00');
-        return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+        return d.toLocaleDateString(t.dateLocale, { day: '2-digit', month: 'long', year: 'numeric' });
       };
       const payDate = n => {
         if (!payStart) return '—';
         const d = new Date(payStart + 'T00:00:00');
         d.setDate(d.getDate() + n * 30);
-        return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+        return d.toLocaleDateString(t.dateLocale, { day: '2-digit', month: 'long', year: 'numeric' });
       };
 
       // ── Abonnement actuel ─────────────────────────────────────────────────────
-      const currentCatalogPrice = PRICING[form.zone]?.upfront?.[form.offer] ?? 0;
+      const currentCatalogPrice = PRICING[zone]?.upfront?.[form.offer] ?? 0;
       const currentDiscountPct  = Number(form.currentDiscount) || 0;
       const currentAnnualPrice  = currentCatalogPrice * (1 - currentDiscountPct / 100);
       const currentPriceStr     = currentDiscountPct > 0
@@ -1449,8 +1623,8 @@
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
             <SectionIcon color={C.purple}>✉️</SectionIcon>
             <div style={{ flex: 1 }}>
-              <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>Supports de communication</p>
-              <p style={{ fontSize: 12, color: C.muted }}>CR manager & email client prêts à copier</p>
+              <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>{t.commSupports}</p>
+              <p style={{ fontSize: 12, color: C.muted }}>{t.commSubtitle}</p>
             </div>
             <button onClick={() => { setTestEmailInput((() => { try { return JSON.parse(localStorage.getItem('front_config') || '{}').testEmail || ''; } catch { return ''; } })()); setShowFrontSetup(true); }}
               title="Config test Front"
@@ -1463,16 +1637,16 @@
             <div style={{ background: C.orangeLight, border: `1px solid #FDE68A`, borderRadius: 14, padding: '14px 18px', display: 'flex', gap: 12, marginBottom: 16 }}>
               <span style={{ fontSize: 22, flexShrink: 0 }}>⚠️</span>
               <div>
-                <p style={{ fontWeight: 700, color: '#92400E', fontSize: 14 }}>Validation manager requise avant contact client</p>
-                <p style={{ fontSize: 13, color: '#B45309', marginTop: 2 }}>Envoyez d'abord le CR Slack et attendez le feu vert.</p>
+                <p style={{ fontWeight: 700, color: '#92400E', fontSize: 14 }}>{t.validationRequired}</p>
+                <p style={{ fontSize: 13, color: '#B45309', marginTop: 2 }}>{t.sendSlackFirst}</p>
               </div>
             </div>
           )}
 
           {[
-            { key: 'slack',     icon: '💬', label: 'CR Slack — Manager',   badge: needsVal ? { t: 'Validation requise', bg: C.orangeLight, border: '#FDE68A', color: '#B45309' } : { t: 'Pour info', bg: C.greenLight, border: '#A7F3D0', color: C.green }, text: slackText,    setText: setEditedSlack },
-            { key: 'email_tu',  icon: '✉️', label: 'Email — Tutoiement',   badge: tplBadge, text: emailTuText,  setText: setEditedEmailTu },
-            { key: 'email_vou', icon: '✉️', label: 'Email — Vouvoiement',  badge: tplBadge, text: emailVouText, setText: setEditedEmailVou },
+            ...(lang !== 'es' ? [{ key: 'slack', icon: '💬', label: 'CR Slack — Manager', badge: needsVal ? { t: t.validationBadge, bg: C.orangeLight, border: '#FDE68A', color: '#B45309' } : { t: t.forInfo, bg: C.greenLight, border: '#A7F3D0', color: C.green }, text: slackText, setText: setEditedSlack }] : []),
+            { key: 'email_tu',  icon: '✉️', label: t.emailTu,  badge: tplBadge, text: emailTuText,  setText: setEditedEmailTu },
+            { key: 'email_vou', icon: '✉️', label: t.emailVou, badge: tplBadge, text: emailVouText, setText: setEditedEmailVou },
           ].map(({ key, icon, label, badge, text, setText }) => (
             <div key={key} style={{ background: 'white', border: `1px solid ${C.border}`, borderRadius: 16, overflow: 'hidden', marginBottom: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', background: '#FAFAFA', borderBottom: `1px solid ${C.border}`, flexWrap: 'wrap', gap: 8 }}>
@@ -1499,7 +1673,7 @@
                     background: copied === key ? C.greenLight : C.purpleLight,
                     border: 'none', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', transition: 'all .15s',
                   }}>
-                    {copied === key ? '✓ Copié !' : 'Copier'}
+                    {copied === key ? t.copied : t.copy}
                   </button>
                 </div>
               </div>
@@ -1789,14 +1963,18 @@
         goTo(1);
       };
 
+      const amNameDisplay = amMapping[form.ae] || form.ae;
+      const lang = SPANISH_AMS.some(n => amNameDisplay.toLowerCase().includes(n)) ? 'es' : 'fr';
+      const effectiveZone = lang === 'es' ? 'B' : form.zone;
+
       const hsNum    = parseInt(form.healthScore);
       const scenarios = useMemo(
         () => submitted ? computeScenarios(hsNum, form.band, form.offer) : [],
         [submitted, hsNum, form.band, form.offer]
       );
       const prorata = useMemo(
-        () => computeProrata(form),
-        [form.subStart, form.subStartDate, form.nextBilling, form.mrr]
+        () => computeProrata(form, TR[lang].dateLocale),
+        [form.subStart, form.subStartDate, form.nextBilling, form.mrr, lang]
       );
 
       const handleDiscount = (idx, val) => {
@@ -1885,15 +2063,15 @@
                   <PaymentSection
                     scenario={selectedScenario} discountValue={selectedDiscount}
                     discountFacilite={selectedDiscountFac} onDiscountFaciliteChange={handleDiscountFacilite}
-                    zone={form.zone} selectedPayment={selectedPayment} onPaymentSelect={handlePaymentSelect}
-                    prorata={prorata} demoMode={true} startDate={payStart}
+                    zone={effectiveZone} selectedPayment={selectedPayment} onPaymentSelect={handlePaymentSelect}
+                    prorata={prorata} demoMode={true} startDate={payStart} lang={lang}
                   />
                 </Card>
               )}
               {selectedScenario && selectedPayment && (
                 <Card style={{ padding: 40 }}>
                   <OutputSection form={form} scenario={selectedScenario} discountValue={selectedDiscount}
-                    discountFacilite={selectedDiscountFac} payment={selectedPayment} prorata={prorata} demoMode={true} amName={amMapping[form.ae] || form.ae} />
+                    discountFacilite={selectedDiscountFac} payment={selectedPayment} prorata={prorata} demoMode={true} amName={amMapping[form.ae] || form.ae} lang={lang} zone={effectiveZone} />
                 </Card>
               )}
             </div>
@@ -1913,7 +2091,7 @@
                       <span style={{ fontSize: 13, fontWeight: 600, color: C.purple }}>Données pré-remplies depuis Salesforce — vérifiez et complétez si besoin.</span>
                     </div>
                   )}
-                  <ClientForm form={form} onChange={onChange} onSubmit={onSubmit} amMapping={amMapping} />
+                  <ClientForm form={form} onChange={onChange} onSubmit={onSubmit} amMapping={amMapping} lang={lang} />
                 </>
               )}
 
@@ -1941,16 +2119,16 @@
                     {scenarios.map((s, i) => (
                       <ScenarioCard key={`${s.offer}-${i}`} scenario={s}
                         discount={discounts[i] ?? 0} onDiscountChange={val => handleDiscount(i, val)}
-                        zone={form.zone} isSelected={selectedIdx === i} onSelect={handleSelect} />
+                        zone={effectiveZone} isSelected={selectedIdx === i} onSelect={handleSelect} lang={lang} />
                     ))}
                   </div>
                 </Card>
-                <CustomScenarioCard zone={form.zone} currentOffer={form.offer} isSelected={selectedIdx === -1} onSelect={handleSelectCustom} />
+                <CustomScenarioCard zone={effectiveZone} currentOffer={form.offer} isSelected={selectedIdx === -1} onSelect={handleSelectCustom} />
                 {selectedScenario && (
                   <div ref={upsellCardRef}>
                     <UpsellSummaryCard
                       currentArr={parseFloat(form.arr) > 0 ? parseFloat(form.arr) : parseFloat(form.mrr) * 12}
-                      newArr={(PRICING[form.zone]?.upfront?.[selectedScenario.offer] ?? 0) * (1 - selectedDiscount / 100)}
+                      newArr={(PRICING[effectiveZone]?.upfront?.[selectedScenario.offer] ?? 0) * (1 - selectedDiscount / 100)}
                       offerName={OFFER_NAMES[selectedScenario.offer] || selectedScenario.offer}
                       onConfirm={() => goTo(2)}
                     />
@@ -1971,9 +2149,9 @@
                       else { setDiscounts(p => ({ ...p, [selectedIdx]: val })); setSelectedPayment(null); }
                     }}
                     discountFacilite={selectedDiscountFac} onDiscountFaciliteChange={handleDiscountFacilite}
-                    zone={form.zone} selectedPayment={selectedPayment} onPaymentSelect={handlePaymentSelect}
+                    zone={effectiveZone} selectedPayment={selectedPayment} onPaymentSelect={handlePaymentSelect}
                     prorata={prorata} demoMode={false} startDate={payStart}
-                    upfrontTimes={upfrontTimes} setUpfrontTimes={setUpfrontTimes}
+                    upfrontTimes={upfrontTimes} setUpfrontTimes={setUpfrontTimes} lang={lang}
                   />
                 </Card>
                 </>
@@ -1986,7 +2164,7 @@
                 <Card style={{ padding: 28 }}>
                   <OutputSection form={form} scenario={selectedScenario} discountValue={selectedDiscount}
                     discountFacilite={selectedDiscountFac} payment={selectedPayment} prorata={prorata} demoMode={false} upfrontTimes={upfrontTimes}
-                    amName={amMapping[form.ae] || form.ae} />
+                    amName={amMapping[form.ae] || form.ae} lang={lang} zone={effectiveZone} />
                 </Card>
                 <SaveCaseBlock form={form} scenario={selectedScenario} discountValue={selectedDiscount} payment={selectedPayment} />
                 </>
