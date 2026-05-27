@@ -29,6 +29,7 @@ const EMAIL_TEMPLATE_PAGES = {
   'Steven Sandana':   '3685ebcd4f08817689d2cfbe6e88162b',
   'Aurore Mauguin':   '3685ebcd4f0881b297dfdbdf2cd102d5',
   'Jason Decotter':   '3685ebcd4f08817492e3eaf2dc501287',
+  'Beatrice Cavalieri': '36d5ebcd4f088097908ef30ce3be3e6a',
 };
 
 // ── Notion helpers ────────────────────────────────────────────────────────

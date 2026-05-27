@@ -132,6 +132,24 @@
         validationBadge: 'Validation requise',
         negTypes: ['Renouvellement', 'Incoming Churn', 'Up-sell', 'Down-sell', 'First Contact'],
         dateLocale: 'fr-FR',
+        // StatusBadge
+        autonome: 'Autonome', autonomeVigilance: 'Autonome — vigilance',
+        validationManager: 'Validation manager', nonRecommended: 'Non recommandé',
+        // CustomScenarioCard
+        manualEntry: 'Saisie manuelle', manualEntrySub: 'Offre et remise personnalisées hors algo',
+        offerLabel: 'Offre', discountLabel: 'Remise upfront (%)',
+        choosePlaceholder: '— choisir —', selectBtn: 'Sélectionner →',
+        // UpsellSummaryCard
+        evolutionTitle: 'Évolution vs abonnement actuel',
+        evolutionSub: (name) => `ARR de départ → prix négocié ${name}`,
+        arrLabel: 'ARR actuel', proposedPriceLabel: 'Prix proposé',
+        variationLabel: 'Variation', seeSchedules: 'Voir les échéanciers →',
+        noArr: 'ARR non renseigné', renewalSame: "Renouvellement à l'identique",
+        // App
+        editProfile: 'Modifier le profil client',
+        offerRecommendations: "Recommandations d'offre",
+        offerRecommendationsSub: "Basées sur l'algorithme Health Score × Pageviews Search",
+        backToOffers: 'Retour aux offres', backToSchedule: "Retour à l'échéancier",
       },
       es: {
         clientAccount: 'Cuenta cliente',
@@ -210,8 +228,26 @@
         copied: '✓ ¡Copiado!',
         forInfo: 'Para info',
         validationBadge: 'Validación requerida',
-        negTypes: ['Renovación', 'Incoming Churn', 'Up-sell', 'Down-sell', 'First Contact'],
+        negTypes: ['Renewal', 'Incoming Churn', 'Up-sell', 'Down-sell', 'First Contact'],
         dateLocale: 'es-ES',
+        // StatusBadge
+        autonome: 'Autónomo', autonomeVigilance: 'Autónomo — vigilancia',
+        validationManager: 'Validación manager', nonRecommended: 'No recomendado',
+        // CustomScenarioCard
+        manualEntry: 'Entrada manual', manualEntrySub: 'Oferta y descuento personalizados fuera del algoritmo',
+        offerLabel: 'Oferta', discountLabel: 'Descuento upfront (%)',
+        choosePlaceholder: '— elegir —', selectBtn: 'Seleccionar →',
+        // UpsellSummaryCard
+        evolutionTitle: 'Evolución vs suscripción actual',
+        evolutionSub: (name) => `ARR de origen → precio negociado ${name}`,
+        arrLabel: 'ARR actual', proposedPriceLabel: 'Precio propuesto',
+        variationLabel: 'Variación', seeSchedules: 'Ver los calendarios de pago →',
+        noArr: 'ARR no registrado', renewalSame: 'Renovación sin cambios',
+        // App
+        editProfile: 'Editar perfil del cliente',
+        offerRecommendations: 'Recomendaciones de oferta',
+        offerRecommendationsSub: 'Basadas en el algoritmo Health Score × Pageviews Search',
+        backToOffers: 'Volver a las ofertas', backToSchedule: 'Volver al calendario de pago',
       },
     };
 
@@ -432,12 +468,13 @@
         <div style={{ width: 32, height: 32, borderRadius: 9, background: color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>{children}</div>
       );
     }
-    function StatusBadge({ status }) {
+    function StatusBadge({ status, lang = 'fr' }) {
+      const t = TR[lang];
       const conf = {
-        ok:       { bg: C.greenLight,  border: '#A7F3D0', color: C.green,   icon: '✅', text: 'Autonome'              },
-        validate: { bg: '#FEFCE8',     border: '#FDE68A', color: '#A16207', icon: '⚠️', text: 'Autonome — vigilance' },
-        manager:  { bg: C.redLight,    border: '#FECACA', color: C.red,     icon: '🔴', text: 'Validation manager'   },
-        nr:       { bg: '#F9FAFB',     border: C.border,  color: C.muted,   icon: '—',  text: 'Non recommandé'       },
+        ok:       { bg: C.greenLight,  border: '#A7F3D0', color: C.green,   icon: '✅', text: t.autonome            },
+        validate: { bg: '#FEFCE8',     border: '#FDE68A', color: '#A16207', icon: '⚠️', text: t.autonomeVigilance   },
+        manager:  { bg: C.redLight,    border: '#FECACA', color: C.red,     icon: '🔴', text: t.validationManager   },
+        nr:       { bg: '#F9FAFB',     border: C.border,  color: C.muted,   icon: '—',  text: t.nonRecommended      },
       }[status.key] || {};
       return (
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600, background: conf.bg, border: `1px solid ${conf.border}`, color: conf.color }}>
@@ -798,7 +835,7 @@
           <div style={{ marginTop: recommended || notRecommended ? 8 : 0, marginBottom: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <p style={{ fontSize: 22, fontWeight: 900, color: C.text }}>{OFFER_NAMES[offer]}</p>
-              <StatusBadge status={status} />
+              <StatusBadge status={status} lang={lang} />
             </div>
             <p style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
               {t.catalogue} <span style={{ fontWeight: 600, color: discount > 0 ? C.coral : C.muted, textDecoration: discount > 0 ? 'line-through' : 'none' }}>{fmt(catalog)}{t.perYear}</span>
@@ -1644,7 +1681,7 @@
           )}
 
           {[
-            ...(lang !== 'es' ? [{ key: 'slack', icon: '💬', label: 'CR Slack — Manager', badge: needsVal ? { t: t.validationBadge, bg: C.orangeLight, border: '#FDE68A', color: '#B45309' } : { t: t.forInfo, bg: C.greenLight, border: '#A7F3D0', color: C.green }, text: slackText, setText: setEditedSlack }] : []),
+            { key: 'slack', icon: '💬', label: 'CR Slack — Manager', badge: needsVal ? { t: t.validationBadge, bg: C.orangeLight, border: '#FDE68A', color: '#B45309' } : { t: t.forInfo, bg: C.greenLight, border: '#A7F3D0', color: C.green }, text: slackText, setText: setEditedSlack },
             { key: 'email_tu',  icon: '✉️', label: t.emailTu,  badge: tplBadge, text: emailTuText,  setText: setEditedEmailTu },
             { key: 'email_vou', icon: '✉️', label: t.emailVou, badge: tplBadge, text: emailVouText, setText: setEditedEmailVou },
           ].map(({ key, icon, label, badge, text, setText }) => (
@@ -1656,7 +1693,7 @@
                   {badge && <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 6, background: badge.bg, border: `1px solid ${badge.border}`, color: badge.color }}>{badge.t}</span>}
                 </div>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  {key === 'slack' && (() => {
+                  {key === 'slack' && lang !== 'es' && (() => {
                     const st = slackSending['cr'] || 'idle';
                     return (
                       <button onClick={sendSlack} disabled={st === 'sending'}
@@ -1771,7 +1808,7 @@
     }
 
     // ─── CustomScenarioCard ────────────────────────────────────────────────────
-    function CustomScenarioCard({ zone, currentOffer, isSelected, onSelect }) {
+    function CustomScenarioCard({ zone, currentOffer, isSelected, onSelect, lang = 'fr' }) {
       const [open, setOpen] = useState(false);
       const [offer, setOffer] = useState('');
       const [discount, setDiscount] = useState(0);
@@ -1789,6 +1826,7 @@
         onSelect(scenario, discount);
       };
 
+      const t = TR[lang];
       return (
         <div style={{ background: 'white', border: `1.5px dashed ${isSelected ? C.purple : C.border}`, borderRadius: 16, padding: '16px 20px', marginTop: 4 }}>
           <button onClick={() => setOpen(o => !o)} style={{
@@ -1797,8 +1835,8 @@
           }}>
             <span style={{ width: 30, height: 30, borderRadius: 8, background: C.purpleLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>✏️</span>
             <div>
-              <p style={{ fontWeight: 700, fontSize: 14, color: C.purple, margin: 0 }}>Saisie manuelle</p>
-              <p style={{ fontSize: 12, color: C.muted, margin: 0 }}>Offre et remise personnalisées hors algo</p>
+              <p style={{ fontWeight: 700, fontSize: 14, color: C.purple, margin: 0 }}>{t.manualEntry}</p>
+              <p style={{ fontSize: 12, color: C.muted, margin: 0 }}>{t.manualEntrySub}</p>
             </div>
             <span style={{ marginLeft: 'auto', color: C.muted, fontSize: 18, lineHeight: 1 }}>{open ? '▾' : '▸'}</span>
           </button>
@@ -1806,17 +1844,17 @@
           {open && (
             <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-end' }}>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.label, marginBottom: 4 }}>Offre</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.label, marginBottom: 4 }}>{t.offerLabel}</label>
                 <select value={offer} onChange={e => setOffer(e.target.value)} style={{
                   fontSize: 13, padding: '7px 10px', borderRadius: 8, border: `1.5px solid ${C.border}`,
                   background: 'white', color: C.text, cursor: 'pointer', minWidth: 140,
                 }}>
-                  <option value="">— choisir —</option>
+                  <option value="">{t.choosePlaceholder}</option>
                   {offerOptions.map(k => <option key={k} value={k}>{OFFER_NAMES[k]}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.label, marginBottom: 4 }}>Remise upfront (%)</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.label, marginBottom: 4 }}>{t.discountLabel}</label>
                 <input type="number" min={0} max={100} value={discount} onChange={e => setDiscount(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))} style={{
                   fontSize: 13, padding: '7px 10px', borderRadius: 8, border: `1.5px solid ${C.border}`,
                   background: 'white', color: C.text, width: 90,
@@ -1824,8 +1862,8 @@
               </div>
               {offer && (
                 <div style={{ fontSize: 12, color: C.muted }}>
-                  <span>Catalogue : {fmt(catalogPrice)}/an</span>
-                  {discount > 0 && <span> → Négocié : <strong style={{ color: C.text }}>{fmt(negotiated)}/an</strong></span>}
+                  <span>{t.catalogue} : {fmt(catalogPrice)}{t.perYear}</span>
+                  {discount > 0 && <span> → {t.negotiatedPrice} : <strong style={{ color: C.text }}>{fmt(negotiated)}{t.perYear}</strong></span>}
                 </div>
               )}
               <button onClick={handleConfirm} disabled={!offer} style={{
@@ -1833,7 +1871,7 @@
                 border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13,
                 cursor: offer ? 'pointer' : 'default', whiteSpace: 'nowrap',
               }}>
-                Sélectionner →
+                {t.selectBtn}
               </button>
             </div>
           )}
@@ -1842,7 +1880,8 @@
     }
 
     // ─── Upsell / Downsell Summary ───────────────────────────────────────────
-    function UpsellSummaryCard({ currentArr, newArr, offerName, onConfirm }) {
+    function UpsellSummaryCard({ currentArr, newArr, offerName, onConfirm, lang = 'fr' }) {
+      const t = TR[lang];
       const hasData  = currentArr > 0 && !isNaN(currentArr);
       const delta    = hasData ? newArr - currentArr : 0;
       const deltaPct = hasData && currentArr > 0 ? (delta / currentArr) * 100 : 0;
@@ -1853,15 +1892,15 @@
       const accentL   = isUp ? C.greenLight : isDown ? C.coralLight : C.purpleLight;
       const accentM   = isUp ? '#A7F3D0'   : isDown ? C.coralMid  : C.purpleMid;
       const dirIcon   = isUp ? '📈'        : isDown ? '📉'        : '↔️';
-      const typeLabel = isUp ? 'Upsell'    : isDown ? 'Downsell'  : "Renouvellement à l'identique";
+      const typeLabel = isUp ? 'Upsell'    : isDown ? 'Downsell'  : t.renewalSame;
 
       return (
         <div style={{ background: 'white', border: `1.5px solid ${accentM}`, borderRadius: 16, padding: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
             <SectionIcon color={accent}>{dirIcon}</SectionIcon>
             <div>
-              <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>Évolution vs abonnement actuel</p>
-              <p style={{ fontSize: 12, color: C.muted }}>ARR de départ → prix négocié {offerName}</p>
+              <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>{t.evolutionTitle}</p>
+              <p style={{ fontSize: 12, color: C.muted }}>{t.evolutionSub(offerName)}</p>
             </div>
             <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, background: accentL, color: accent, border: `1px solid ${accentM}` }}>
               {typeLabel}
@@ -1870,23 +1909,23 @@
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr 1.2fr', alignItems: 'center', gap: 12, marginBottom: 20 }}>
             <div style={{ borderRadius: 14, padding: '14px 18px', background: '#F9FAFB', border: `1px solid ${C.border}` }}>
-              <Label>ARR actuel</Label>
+              <Label>{t.arrLabel}</Label>
               <p style={{ fontSize: 22, fontWeight: 900, color: C.text }}>{hasData ? fmt(currentArr) : '—'}</p>
-              <p style={{ fontSize: 11, color: C.muted }}>/an</p>
+              <p style={{ fontSize: 11, color: C.muted }}>{t.perYear}</p>
             </div>
             <div style={{ fontSize: 20, color: C.muted, textAlign: 'center' }}>→</div>
             <div style={{ borderRadius: 14, padding: '14px 18px', background: '#F9FAFB', border: `1px solid ${C.border}` }}>
-              <Label>Prix proposé</Label>
+              <Label>{t.proposedPriceLabel}</Label>
               <p style={{ fontSize: 22, fontWeight: 900, color: C.text }}>{fmt(newArr)}</p>
-              <p style={{ fontSize: 11, color: C.muted }}>{offerName} /an</p>
+              <p style={{ fontSize: 11, color: C.muted }}>{offerName} {t.perYear}</p>
             </div>
             <div style={{ borderRadius: 14, padding: '14px 18px', background: accentL, border: `1.5px solid ${accentM}`, textAlign: 'center' }}>
-              <p style={{ fontSize: 12, fontWeight: 600, color: accent, marginBottom: 6 }}>Variation</p>
+              <p style={{ fontSize: 12, fontWeight: 600, color: accent, marginBottom: 6 }}>{t.variationLabel}</p>
               <p style={{ fontSize: 24, fontWeight: 900, color: accent }}>
                 {!hasData ? '—' : `${delta >= 0 ? '+' : ''}${fmt(delta)}`}
               </p>
               <p style={{ fontSize: 14, fontWeight: 700, color: accent, marginTop: 4 }}>
-                {!hasData ? 'ARR non renseigné' : `${deltaPct >= 0 ? '+' : ''}${deltaPct.toFixed(1)}%`}
+                {!hasData ? t.noArr : `${deltaPct >= 0 ? '+' : ''}${deltaPct.toFixed(1)}%`}
               </p>
             </div>
           </div>
@@ -1898,7 +1937,7 @@
             boxShadow: `0 4px 16px ${C.purple}44`,
             letterSpacing: '.01em',
           }}>
-            Voir les échéanciers →
+            {t.seeSchedules}
           </button>
         </div>
       );
@@ -2098,18 +2137,18 @@
               {/* Étape 1 — Recommandations */}
               {step === 1 && scenarios.length > 0 && (
                 <>
-                <BackButton to={0} label="Modifier le profil client" />
+                <BackButton to={0} label={TR[lang].editProfile} />
                 <Card style={{ padding: 28 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
                     <SectionIcon color={C.coral}>🎯</SectionIcon>
                     <div>
-                      <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>Recommandations d'offre</p>
-                      <p style={{ fontSize: 12, color: C.muted }}>Basées sur l'algorithme Health Score × Pageviews Search</p>
+                      <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>{TR[lang].offerRecommendations}</p>
+                      <p style={{ fontSize: 12, color: C.muted }}>{TR[lang].offerRecommendationsSub}</p>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
                     {[
-                      { label: `Health Score ${hsNum}% — ${hsNum <= 70 ? 'Fragile' : 'Sain'}`, bg: hsNum <= 70 ? C.coralLight : C.greenLight, color: hsNum <= 70 ? C.coral : C.green, border: hsNum <= 70 ? C.coralMid : '#A7F3D0' },
+                      { label: `Health Score ${hsNum}% — ${hsNum <= 70 ? TR[lang].fragile.replace('⚠️ ','') : TR[lang].healthy.replace('✅ ','')}`, bg: hsNum <= 70 ? C.coralLight : C.greenLight, color: hsNum <= 70 ? C.coral : C.green, border: hsNum <= 70 ? C.coralMid : '#A7F3D0' },
                       bm && { label: `${bm.emoji} ${bm.label}`, bg: C.purpleLight, color: C.purple, border: C.purpleMid },
                     ].filter(Boolean).map((p, i) => (
                       <span key={i} style={{ fontSize: 12, fontWeight: 600, padding: '5px 12px', borderRadius: 20, background: p.bg, color: p.color, border: `1px solid ${p.border}` }}>{p.label}</span>
@@ -2123,7 +2162,7 @@
                     ))}
                   </div>
                 </Card>
-                <CustomScenarioCard zone={effectiveZone} currentOffer={form.offer} isSelected={selectedIdx === -1} onSelect={handleSelectCustom} />
+                <CustomScenarioCard zone={effectiveZone} currentOffer={form.offer} isSelected={selectedIdx === -1} onSelect={handleSelectCustom} lang={lang} />
                 {selectedScenario && (
                   <div ref={upsellCardRef}>
                     <UpsellSummaryCard
@@ -2131,6 +2170,7 @@
                       newArr={(PRICING[effectiveZone]?.upfront?.[selectedScenario.offer] ?? 0) * (1 - selectedDiscount / 100)}
                       offerName={OFFER_NAMES[selectedScenario.offer] || selectedScenario.offer}
                       onConfirm={() => goTo(2)}
+                      lang={lang}
                     />
                   </div>
                 )}
@@ -2140,7 +2180,7 @@
               {/* Étape 2 — Échéancier */}
               {step === 2 && selectedScenario && (
                 <>
-                <BackButton to={1} label="Retour aux offres" />
+                <BackButton to={1} label={TR[lang].backToOffers} />
                 <Card style={{ padding: 28 }}>
                   <PaymentSection
                     scenario={selectedScenario} discountValue={selectedDiscount}
@@ -2160,7 +2200,7 @@
               {/* Étape 3 — Résumé */}
               {step === 3 && selectedScenario && selectedPayment && (
                 <>
-                <BackButton to={2} label="Retour à l'échéancier" />
+                <BackButton to={2} label={TR[lang].backToSchedule} />
                 <Card style={{ padding: 28 }}>
                   <OutputSection form={form} scenario={selectedScenario} discountValue={selectedDiscount}
                     discountFacilite={selectedDiscountFac} payment={selectedPayment} prorata={prorata} demoMode={false} upfrontTimes={upfrontTimes}
