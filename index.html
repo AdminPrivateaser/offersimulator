@@ -150,6 +150,32 @@
         offerRecommendations: "Recommandations d'offre",
         offerRecommendationsSub: "Basées sur l'algorithme Health Score × Pageviews Search",
         backToOffers: 'Retour aux offres', backToSchedule: "Retour à l'échéancier",
+        // Bands (Performance)
+        bandLabels: { red: 'Faible', green: 'Correcte', blue: 'Forte' },
+        bandMetaLabels: { red: 'Faible pageviews search (< 100%)', green: 'Pageviews search correcte (100–200%)', blue: 'Forte pageviews search (> 200%)' },
+        // Slack CR
+        slk: {
+          validationReq: 'Demande de validation — ', clientSuffix: ' client',
+          account: '*Compte :*', type: '*Type :*', zone: '*Zone :*',
+          currentSituation: '*Situation actuelle*',
+          mrr: 'MRR', perMonth: '/mois',
+          hsSain: '✅ sain', hsFragile: '⚠️ fragile',
+          proposedOffer: '*Offre proposée*',
+          engagement: 'Engagement', subStart: 'Début souscription',
+          atRenewal: 'Au moment du renouvellement', earlyRenewal: 'Early renewal — ',
+          discount: 'Discount upfront', discountFacilite: 'Discount facilité',
+          validManager: 'validation manager — seuil :', vigilance: 'vigilance — seuil :',
+          prorataCredit: 'Crédit prorata', daysConsumed: 'j consommés',
+          negotiatedPrice: 'Prix négocié upfront', paymentMode: 'Mode de paiement',
+          finalAmount: 'Montant final (après crédit)', arrEvolution: 'Évolution ARR',
+          arrSame: 'Identique', deadline: 'Échéance',
+          payUpfront: 'Annuel upfront', payFacilite: 'Annuel facilité 12×',
+          validationLine: (reason) => `⚠️ *Validation requise* — ${reason}. Merci de valider avant contact client.`,
+          reasonCustom: 'offre saisie manuellement (hors algo)',
+          reasonNotRec: 'offre hors recommandation',
+          reasonDiscount: 'discount dépasse le seuil autonome',
+          autonomeLine: "✅ *Autonome* — dans les seuils, aucune validation requise.",
+        },
       },
       es: {
         clientAccount: 'Cuenta cliente',
@@ -248,6 +274,32 @@
         offerRecommendations: 'Recomendaciones de oferta',
         offerRecommendationsSub: 'Basadas en el algoritmo Health Score × Pageviews Search',
         backToOffers: 'Volver a las ofertas', backToSchedule: 'Volver al calendario de pago',
+        // Bands (Performance — English for Spain)
+        bandLabels: { red: 'Low', green: 'Moderate', blue: 'High' },
+        bandMetaLabels: { red: 'Low pageviews search (< 100%)', green: 'Moderate pageviews search (100–200%)', blue: 'High pageviews search (> 200%)' },
+        // Slack CR (Spanish)
+        slk: {
+          validationReq: 'Solicitud de validación — ', clientSuffix: ' cliente',
+          account: '*Cuenta:*', type: '*Tipo:*', zone: '*Zona:*',
+          currentSituation: '*Situación actual*',
+          mrr: 'MRR', perMonth: '/mes',
+          hsSain: '✅ sano', hsFragile: '⚠️ frágil',
+          proposedOffer: '*Oferta propuesta*',
+          engagement: 'Compromiso', subStart: 'Inicio suscripción',
+          atRenewal: 'En el momento de la renovación', earlyRenewal: 'Early renewal — ',
+          discount: 'Descuento upfront', discountFacilite: 'Descuento facilidad',
+          validManager: 'validación manager — umbral:', vigilance: 'vigilancia — umbral:',
+          prorataCredit: 'Crédito prorrata', daysConsumed: 'días consumidos',
+          negotiatedPrice: 'Precio negociado upfront', paymentMode: 'Modalidad de pago',
+          finalAmount: 'Importe final (tras crédito)', arrEvolution: 'Evolución ARR',
+          arrSame: 'Sin cambios', deadline: 'Vencimiento',
+          payUpfront: 'Anual upfront', payFacilite: 'Anual facilidad 12×',
+          validationLine: (reason) => `⚠️ *Validación requerida* — ${reason}. Por favor, valida antes de contactar al cliente.`,
+          reasonCustom: 'oferta introducida manualmente (fuera del algoritmo)',
+          reasonNotRec: 'oferta fuera de la recomendación',
+          reasonDiscount: 'descuento supera el umbral autónomo',
+          autonomeLine: "✅ *Autónomo* — dentro de los umbrales, sin validación requerida.",
+        },
       },
     };
 
@@ -787,7 +839,7 @@
                       border: `1.5px solid ${cm.border}`, background: cm.bg,
                     }}>
                       <span style={{ fontSize: 22 }}>{b.emoji}</span>
-                      <span style={{ fontSize: 11, fontWeight: 700, marginTop: 4, color: cm.text }}>{b.label}</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, marginTop: 4, color: cm.text }}>{t.bandLabels[b.key]}</span>
                       <span style={{ fontSize: 10, color: C.label, marginTop: 1 }}>{b.sub}</span>
                     </button>
                   );
@@ -1367,7 +1419,7 @@
                            || (payment === 'facilite' && statusFac.key === 'manager')
                            || scenario.isCustom
                            || scenario.notRecommended;
-      const payLabel       = payment === 'upfront' ? 'Annuel upfront' : 'Annuel facilité 12×';
+      const payLabel       = payment === 'upfront' ? t.slk.payUpfront : t.slk.payFacilite;
       const bandEmoji      = BAND_META[form.band]?.emoji || '';
       const hsNum          = parseInt(form.healthScore);
       const engLabel       = ENGAGEMENT_OPTIONS.find(o => o.value === form.engagement)?.label || '';
@@ -1524,34 +1576,36 @@
       const slackDirIcon    = slackDelta === null ? '' : slackDelta > 0.5 ? '📈' : slackDelta < -0.5 ? '📉' : '↔️';
       const slackDirLabel   = slackDelta === null ? '' : slackDelta > 0.5 ? 'Upsell' : slackDelta < -0.5 ? 'Downsell' : 'Identique';
 
+      const S = t.slk;
+      const bandLabel = t.bandMetaLabels[form.band] || '';
       const slack = [
-        `📋 *${needsVal ? '⚠️ Demande de validation — ' : ''}${form.negType || 'Renouvellement'} client*`,
+        `📋 *${needsVal ? `⚠️ ${S.validationReq}` : ''}${form.negType || (lang === 'es' ? 'Renewal' : 'Renouvellement')}${S.clientSuffix}*`,
         ``,
-        `*Compte :* ${form.account}`,
-        ...(form.negType ? [`*Type :* ${form.negType}`] : []),
-        `*Zone :* ${form.zone}`,
+        `${S.account} ${form.account}`,
+        ...(form.negType ? [`${S.type} ${form.negType}`] : []),
+        `${S.zone} ${zone}`,
         ``,
-        `*Situation actuelle*`,
-        `> Plan : ${OFFER_NAMES[form.offer]}${form.mrr ? ` | MRR : ${fmt(parseFloat(form.mrr))}/mois` : ''}`,
-        `> Health Score : ${form.healthScore}% ${hsNum <= 70 ? '⚠️ fragile' : '✅ sain'}`,
-        `> Pageviews Search : ${bandEmoji} ${BAND_META[form.band]?.label || ''}`,
+        S.currentSituation,
+        `> Plan : ${OFFER_NAMES[form.offer]}${form.mrr ? ` | ${S.mrr} : ${fmt(parseFloat(form.mrr))}${S.perMonth}` : ''}`,
+        `> Health Score : ${form.healthScore}% ${hsNum <= 70 ? S.hsFragile : S.hsSain}`,
+        `> Pageviews Search : ${bandEmoji} ${bandLabel}`,
         ``,
-        `*Offre proposée*`,
+        S.proposedOffer,
         `> Plan : *${OFFER_NAMES[offer]}* (${scenarioLabel})`,
-        ...(engLabel  ? [`> Engagement : ${engLabel}`] : []),
-        ...(payStart  ? [`> Début souscription : ${form.subStart === 'early' ? `Early renewal — ${fmtDateLong(payStart)}` : 'Au moment du renouvellement'}`] : []),
-        `> Discount upfront : ${discountValue}% ${status.key === 'manager' ? `🔴 (validation manager — seuil : ${rules?.validate}%)` : status.key === 'validate' ? `⚠️ (vigilance — seuil : ${rules?.validate}%)` : '✅'}`,
-        ...(payment === 'facilite' && discountFacilite > 0 ? [`> Discount facilité : ${discountFacilite}%${statusFac.key === 'validate' ? ` ⚠️` : ' ✅'}`] : []),
-        ...(credit > 0 ? [`> Crédit prorata : *− ${fmtDec(credit)}* (${prorata.consumedDays} j consommés / ${prorata.totalDays})`] : []),
-        `> Prix négocié upfront : *${fmt(negotiated)}/an*`,
-        `> Mode de paiement : ${payLabel}`,
-        `> Montant final (après crédit) : *${fmtDec(finalPrice)}/an*`,
-        ...(slackDelta !== null ? [`> Évolution ARR : *${slackDelta >= 0 ? '+' : ''}${fmt(slackDelta)}* (${slackDeltaPct >= 0 ? '+' : ''}${slackDeltaPct.toFixed(1)}%) ${slackDirIcon} _${slackDirLabel}_`] : []),
-        ...(form.nextBilling ? [`> Échéance : ${form.nextBilling}`] : []),
+        ...(engLabel  ? [`> ${S.engagement} : ${engLabel}`] : []),
+        ...(payStart  ? [`> ${S.subStart} : ${form.subStart === 'early' ? `${S.earlyRenewal}${fmtDateLong(payStart)}` : S.atRenewal}`] : []),
+        `> ${S.discount} : ${discountValue}% ${status.key === 'manager' ? `🔴 (${S.validManager} ${rules?.validate}%)` : status.key === 'validate' ? `⚠️ (${S.vigilance} ${rules?.validate}%)` : '✅'}`,
+        ...(payment === 'facilite' && discountFacilite > 0 ? [`> ${S.discountFacilite} : ${discountFacilite}%${statusFac.key === 'validate' ? ` ⚠️` : ' ✅'}`] : []),
+        ...(credit > 0 ? [`> ${S.prorataCredit} : *− ${fmtDec(credit)}* (${prorata.consumedDays} ${S.daysConsumed} / ${prorata.totalDays})`] : []),
+        `> ${S.negotiatedPrice} : *${fmt(negotiated)}${t.perYear}*`,
+        `> ${S.paymentMode} : ${payLabel}`,
+        `> ${S.finalAmount} : *${fmtDec(finalPrice)}${t.perYear}*`,
+        ...(slackDelta !== null ? [`> ${S.arrEvolution} : *${slackDelta >= 0 ? '+' : ''}${fmt(slackDelta)}* (${slackDeltaPct >= 0 ? '+' : ''}${slackDeltaPct.toFixed(1)}%) ${slackDirIcon} _${slackDelta > 0.5 ? 'Upsell' : slackDelta < -0.5 ? 'Downsell' : S.arrSame}_`] : []),
+        ...(form.nextBilling ? [`> ${S.deadline} : ${form.nextBilling}`] : []),
         ``,
         needsVal
-          ? `⚠️ *Validation requise* — ${scenario.isCustom ? 'offre saisie manuellement (hors algo)' : scenario.notRecommended ? 'offre hors recommandation' : 'discount dépasse le seuil autonome'}. Merci de valider avant contact client.`
-          : `✅ *Autonome* — dans les seuils, aucune validation requise.`,
+          ? S.validationLine(scenario.isCustom ? S.reasonCustom : scenario.notRecommended ? S.reasonNotRec : S.reasonDiscount)
+          : S.autonomeLine,
       ].join('\n');
 
       useEffect(() => { setEditedSlack(null); }, [slack]);
