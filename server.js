@@ -70,7 +70,8 @@ function parseEmailTemplate(blocks, negType) {
   const norm = s => (s || '').toLowerCase().trim()
     .replace('up-sell', 'upsell').replace('down-sell', 'downsell');
   const aliases = {
-    'renouvellement': 'renouvellement', 'incoming churn': 'incoming churn',
+    'renouvellement': 'renouvellement', 'renewal': 'renouvellement',
+    'incoming churn': 'incoming churn',
     'upsell': 'upsell', 'downsell': 'downsell', 'first contact': 'first contact',
   };
   const target = aliases[norm(negType)] || norm(negType) || 'renouvellement';
@@ -88,10 +89,24 @@ function parseEmailTemplate(blocks, negType) {
       if ((aliases[norm(rt())] || norm(rt())) === target) { inSec = true; inTuto = false; inVou = false; }
       continue;
     }
-    if (type === 'heading_3' && inSec) {
-      const h = rt().toLowerCase();
-      inTuto = h.includes('tuto');
-      inVou  = h.includes('vouvoi') || (h.includes('vous') && !h.includes('tuto'));
+    if (type === 'heading_3') {
+      const h = norm(rt());
+      const isTutoVou = h.includes('tuto') || h.includes('vouvoi') || (h.includes('vous') && !h.includes('tuto'));
+      if (!inSec) {
+        // Certaines pages utilisent ### pour les sections (au lieu de ##)
+        if (!isTutoVou) {
+          if (Object.values(aliases).includes(aliases[h] || h)) {
+            if ((aliases[h] || h) === target) { inSec = true; inTuto = false; inVou = false; }
+          }
+        }
+      } else {
+        if (isTutoVou) {
+          inTuto = h.includes('tuto');
+          inVou  = h.includes('vouvoi') || (h.includes('vous') && !h.includes('tuto'));
+        } else {
+          break; // nouvelle section → on arrête
+        }
+      }
       continue;
     }
     if (!inSec) continue;
