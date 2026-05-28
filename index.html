@@ -1960,7 +1960,7 @@
                   {badge && <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 6, background: badge.bg, border: `1px solid ${badge.border}`, color: badge.color }}>{badge.t}</span>}
                 </div>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  {key === 'slack' && lang !== 'es' && (() => {
+                  {key === 'slack' && (() => {
                     const st = slackSending['cr'] || 'idle';
                     return (
                       <button onClick={sendSlack} disabled={st === 'sending'}
