@@ -178,6 +178,7 @@
         },
         catalogueActuelLabel: 'Catalogue souscription actuelle',
         catalogueNewLabel: 'Catalogue nouvelle offre',
+        slackBtn: { idle: '📢 Envoyer CR Slack', sending: '…', sent: '✓ Envoyé !', error: '❌ Erreur' },
       },
       es: {
         clientAccount: 'Cuenta cliente',
@@ -304,6 +305,15 @@
         },
         catalogueActuelLabel: 'Catálogo suscripción actual',
         catalogueNewLabel: 'Catálogo nueva oferta',
+        scenarioLabels: {
+          'Offre inférieure':            'Oferta inferior',
+          'Offre deux fois inférieure':  'Oferta dos niveles inferior',
+          'Offre similaire':             'Oferta similar',
+          'Offre supérieure':            'Oferta superior',
+          'Offre deux fois supérieure':  'Oferta dos niveles superior',
+          'Offre personnalisée':         'Oferta personalizada',
+        },
+        slackBtn: { idle: '📢 Enviar CR Slack', sending: '…', sent: '✓ ¡Enviado!', error: '❌ Error' },
       },
     };
 
@@ -1804,7 +1814,7 @@
         `> Pageviews Search : ${bandEmoji} ${bandLabel}`,
         ``,
         S.proposedOffer,
-        `> Plan : *${OFFER_NAMES[offer]}* (${scenarioLabel})`,
+        `> Plan : *${OFFER_NAMES[offer]}* (${t.scenarioLabels?.[scenarioLabel] ?? scenarioLabel})`,
         ...(engLabel  ? [`> ${S.engagement} : ${engLabel}`] : []),
         ...(payStart  ? [`> ${S.subStart} : ${form.subStart === 'early' ? `${S.earlyRenewal}${fmtDateLong(payStart)}` : S.atRenewal}`] : []),
         `> ${S.discount} : ${discountValue}% ${status.key === 'manager' ? `🔴 (${S.validManager} ${rules?.validate}%)` : status.key === 'validate' ? `⚠️ (${S.vigilance} ${rules?.validate}%)` : '✅'}`,
@@ -1968,7 +1978,7 @@
                           background: st === 'sent' ? C.greenLight : st === 'error' ? C.redLight : '#F1F0FF',
                           color: st === 'sent' ? C.green : st === 'error' ? C.red : C.purple,
                         }}>
-                        {st === 'sending' ? '…' : st === 'sent' ? '✓ Envoyé !' : st === 'error' ? '❌ Erreur' : '📢 Envoyer CR Slack'}
+                        {(() => { const btn = t.slackBtn ?? { idle: '📢 Envoyer CR Slack', sending: '…', sent: '✓ Envoyé !', error: '❌ Erreur' }; return btn[st] ?? btn.idle; })()}
                       </button>
                     );
                   })()}
