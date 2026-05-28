@@ -1378,7 +1378,7 @@
     }
 
     // ─── Étape 4 : Output ────────────────────────────────────────────────────
-    function OutputSection({ form, scenario, discountValue, discountFacilite, payment, prorata, demoMode, upfrontTimes = 1, amName, lang, zone: zoneProp }) {
+    function OutputSection({ form, scenario, discountValue, discountFacilite, payment, prorata, demoMode, upfrontTimes = 1, amName, lang, zone: zoneProp, decoyOffers = [] }) {
       const t = TR[lang];
       const zone = zoneProp || form.zone;
       const [copied,         setCopied]         = useState(null);
@@ -1388,6 +1388,8 @@
       const [rawTemplates,   setRawTemplates]   = useState({ tutoiement: null, vouvoiement: null });
       const [tplLoading,     setTplLoading]     = useState(false);
       const [slackSending,   setSlackSending]   = useState({});
+      const [editedDecoyTu,  setEditedDecoyTu]  = useState(null);
+      const [editedDecoyVou, setEditedDecoyVou] = useState(null);
 
       useEffect(() => {
         const name  = amName;
@@ -1563,6 +1565,48 @@
       const emailVouRaw  = rawTemplates.vouvoiement ? fillTemplate(rawTemplates.vouvoiement, templateVars) : email;
       const emailTuText  = editedEmailTu  !== null ? editedEmailTu  : emailTuRaw;
       const emailVouText = editedEmailVou !== null ? editedEmailVou : emailVouRaw;
+
+      // ── Emails Decoy ──────────────────────────────────────────────────────────
+      const makeDecoyEmail = (tu) => {
+        if (!decoyOffers || decoyOffers.length < 2) return '';
+        const intro = tu
+          ? `Suite à notre échange, voici un comparatif des offres que nous te proposons pour ton renouvellement Joy.`
+          : `Suite à notre échange, voici un comparatif des offres que nous vous proposons pour votre renouvellement Joy.`;
+        const closing = tu ? `À bientôt,` : `Cordialement,`;
+        const sep = `${'─'.repeat(42)}`;
+        return [
+          `Objet : Comparatif des offres Joy — ${form.account}`,
+          ``,
+          `Bonjour,`,
+          ``,
+          intro,
+          ``,
+          ...decoyOffers.flatMap((item, idx) => {
+            const cat = PRICING[zone]?.upfront?.[item.offer] ?? 0;
+            const neg = cat * (1 - item.discount / 100);
+            return [
+              sep,
+              `${item.recommended ? '⭐ ' : ''}Option ${idx + 1} — ${OFFER_NAMES[item.offer]}${item.recommended ? ' · Notre recommandation' : ''}`,
+              item.discount > 0
+                ? `Prix catalogue : ${fmt(cat)} HT/an   →   Prix négocié : ${fmtDec(neg)} HT/an (−${item.discount}%)`
+                : `Prix : ${fmt(cat)} HT/an`,
+              ``,
+            ];
+          }),
+          sep,
+          ``,
+          `N'hésitez pas à me contacter pour toute question.`,
+          ``,
+          closing,
+          ...(amName ? [amName] : []),
+        ].join('\n');
+      };
+      const decoyEmailTuRaw   = makeDecoyEmail(true);
+      const decoyEmailVouRaw  = makeDecoyEmail(false);
+      const decoyEmailTuText  = editedDecoyTu  !== null ? editedDecoyTu  : decoyEmailTuRaw;
+      const decoyEmailVouText = editedDecoyVou !== null ? editedDecoyVou : decoyEmailVouRaw;
+      const decoyBadge = { t: `🎭 Decoy · ${decoyOffers.length} offre${decoyOffers.length > 1 ? 's' : ''}`, bg: '#F3E8FF', border: '#DDD6FE', color: '#7C3AED' };
+
       const tplBadge = tplLoading
         ? { t: '⏳ chargement…', bg: '#F9FAFB', border: C.border, color: C.muted }
         : rawTemplates.tutoiement
@@ -1610,6 +1654,8 @@
 
       useEffect(() => { setEditedSlack(null); }, [slack]);
       useEffect(() => { setEditedEmailTu(null); setEditedEmailVou(null); }, [email]);
+      useEffect(() => { setEditedDecoyTu(null); },  [decoyEmailTuRaw]);
+      useEffect(() => { setEditedDecoyVou(null); }, [decoyEmailVouRaw]);
 
       const slackText = editedSlack !== null ? editedSlack : slack;
 
@@ -1736,6 +1782,10 @@
 
           {[
             { key: 'slack', icon: '💬', label: 'CR Slack — Manager', badge: needsVal ? { t: t.validationBadge, bg: C.orangeLight, border: '#FDE68A', color: '#B45309' } : { t: t.forInfo, bg: C.greenLight, border: '#A7F3D0', color: C.green }, text: slackText, setText: setEditedSlack },
+            ...(decoyOffers.length >= 2 ? [
+              { key: 'decoy_tu',  icon: '🎭', label: 'Email Decoy — Tutoiement',  badge: decoyBadge, text: decoyEmailTuText,  setText: setEditedDecoyTu  },
+              { key: 'decoy_vou', icon: '🎭', label: 'Email Decoy — Vouvoiement', badge: decoyBadge, text: decoyEmailVouText, setText: setEditedDecoyVou },
+            ] : []),
             { key: 'email_tu',  icon: '✉️', label: t.emailTu,  badge: tplBadge, text: emailTuText,  setText: setEditedEmailTu },
             { key: 'email_vou', icon: '✉️', label: t.emailVou, badge: tplBadge, text: emailVouText, setText: setEditedEmailVou },
           ].map(({ key, icon, label, badge, text, setText }) => (
@@ -1933,6 +1983,111 @@
       );
     }
 
+    // ─── Stratégie Decoy ─────────────────────────────────────────────────────
+    function DecoyBuilderSection({ decoyOffers, zone, onAdd, onRemove, onMove, onSetRecommended, onUpdateDiscount }) {
+      const [showAdd,      setShowAdd]      = useState(false);
+      const [addOffer,     setAddOffer]     = useState('');
+      const [addDiscount,  setAddDiscount]  = useState(0);
+
+      const addCatalog = PRICING[zone]?.upfront?.[addOffer] ?? 0;
+      const addNeg     = addCatalog * (1 - addDiscount / 100);
+
+      return (
+        <div style={{ background: 'white', border: '1.5px solid #E4E4F0', borderRadius: 16, padding: '20px 24px', marginTop: 4 }}>
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: decoyOffers.length > 0 || showAdd ? 20 : 0 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 9, background: '#F3E8FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>🎭</div>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>Stratégie Decoy</p>
+              <p style={{ fontSize: 12, color: C.muted }}>Composez un comparatif d'offres à envoyer dans votre email client</p>
+            </div>
+            {decoyOffers.length >= 2 && (
+              <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20, background: '#ECFDF5', color: '#059669', border: '1px solid #A7F3D0' }}>
+                ✓ {decoyOffers.length} offres
+              </span>
+            )}
+          </div>
+
+          {/* Liste des offres */}
+          {decoyOffers.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              {decoyOffers.map((item, idx) => {
+                const cat = PRICING[zone]?.upfront?.[item.offer] ?? 0;
+                const neg = cat * (1 - item.discount / 100);
+                return (
+                  <div key={item.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '10px 14px', marginBottom: 8,
+                    background: item.recommended ? '#EEF2FF' : '#F9FAFB',
+                    border: `1.5px solid ${item.recommended ? '#C7D2FE' : C.border}`,
+                    borderRadius: 12, transition: 'all .15s',
+                  }}>
+                    <div style={{ width: 24, height: 24, borderRadius: 6, background: item.recommended ? C.purple : '#9CA3AF', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                      {idx + 1}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ fontWeight: 700, fontSize: 13, color: C.text }}>{OFFER_NAMES[item.offer]}</span>
+                      {item.recommended && <span style={{ fontSize: 11, color: C.purple, fontWeight: 600, marginLeft: 6 }}>⭐ Recommandée</span>}
+                      <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>
+                        {item.discount > 0
+                          ? <>{fmt(neg)}/an <span style={{ color: C.coral }}>−{item.discount}%</span></>
+                          : <>{fmt(cat)}/an</>
+                        }
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                      <input type="number" min={0} max={80} value={item.discount}
+                        onChange={e => onUpdateDiscount(item.id, Math.max(0, Math.min(80, parseInt(e.target.value) || 0)))}
+                        style={{ width: 50, padding: '4px 6px', borderRadius: 7, border: `1px solid ${C.border}`, fontSize: 12, textAlign: 'center', color: C.text }}
+                      />
+                      <span style={{ fontSize: 11, color: C.label }}>%</span>
+                    </div>
+                    <button onClick={() => onSetRecommended(item.id)} title="Marquer comme recommandée" style={{ background: item.recommended ? '#FEF9C3' : 'white', border: `1px solid ${item.recommended ? '#FDE047' : C.border}`, borderRadius: 7, padding: '5px 7px', cursor: 'pointer', fontSize: 13, lineHeight: 1 }}>⭐</button>
+                    <button onClick={() => onMove(item.id, -1)} disabled={idx === 0} style={{ background: 'white', border: `1px solid ${C.border}`, borderRadius: 7, padding: '5px 7px', cursor: idx === 0 ? 'not-allowed' : 'pointer', opacity: idx === 0 ? 0.35 : 1, fontSize: 11 }}>▲</button>
+                    <button onClick={() => onMove(item.id, 1)} disabled={idx === decoyOffers.length - 1} style={{ background: 'white', border: `1px solid ${C.border}`, borderRadius: 7, padding: '5px 7px', cursor: idx === decoyOffers.length - 1 ? 'not-allowed' : 'pointer', opacity: idx === decoyOffers.length - 1 ? 0.35 : 1, fontSize: 11 }}>▼</button>
+                    <button onClick={() => onRemove(item.id)} style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 7, padding: '5px 8px', cursor: 'pointer', fontSize: 13, color: '#EF4444', lineHeight: 1 }}>×</button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Formulaire d'ajout */}
+          {showAdd ? (
+            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap', padding: 14, background: '#F9FAFB', borderRadius: 12, marginBottom: 12 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: C.label, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Offre</label>
+                <select value={addOffer} onChange={e => setAddOffer(e.target.value)} style={{ fontSize: 13, padding: '8px 12px', borderRadius: 9, border: `1.5px solid ${C.border}`, background: 'white', color: C.text, cursor: 'pointer', minWidth: 150, appearance: 'none' }}>
+                  <option value="">— choisir —</option>
+                  {OFFER_KEYS.filter(k => k !== 'joy-only').map(k => <option key={k} value={k}>{OFFER_NAMES[k]}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: C.label, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Remise (%)</label>
+                <input type="number" min={0} max={80} value={addDiscount}
+                  onChange={e => setAddDiscount(Math.max(0, Math.min(80, parseInt(e.target.value) || 0)))}
+                  style={{ fontSize: 13, padding: '8px 10px', borderRadius: 9, border: `1.5px solid ${C.border}`, width: 75, color: C.text }}
+                />
+              </div>
+              {addOffer && <div style={{ fontSize: 12, color: C.muted, alignSelf: 'flex-end', paddingBottom: 9 }}>{fmt(addNeg)}/an</div>}
+              <button onClick={() => { if (!addOffer) return; onAdd(addOffer, addDiscount); setAddOffer(''); setAddDiscount(0); setShowAdd(false); }} disabled={!addOffer} style={{ alignSelf: 'flex-end', background: addOffer ? C.purple : '#E5E7EB', color: addOffer ? 'white' : C.muted, border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13, cursor: addOffer ? 'pointer' : 'default' }}>Ajouter</button>
+              <button onClick={() => { setShowAdd(false); setAddOffer(''); setAddDiscount(0); }} style={{ alignSelf: 'flex-end', background: 'white', border: `1px solid ${C.border}`, borderRadius: 10, padding: '9px 12px', fontSize: 13, cursor: 'pointer', color: C.muted }}>Annuler</button>
+            </div>
+          ) : (
+            <button onClick={() => setShowAdd(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: '1.5px dashed #A78BFA', borderRadius: 12, padding: '10px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#7C3AED', width: '100%', justifyContent: 'center' }}>
+              <span style={{ fontSize: 16 }}>＋</span> Ajouter une offre au Decoy
+            </button>
+          )}
+
+          {decoyOffers.length >= 2 && (
+            <p style={{ fontSize: 12, color: '#059669', fontWeight: 600, marginTop: 12, textAlign: 'center' }}>
+              ✓ Comparatif de {decoyOffers.length} offres prêt — les emails Decoy apparaîtront dans les supports de communication
+            </p>
+          )}
+        </div>
+      );
+    }
+
     // ─── Upsell / Downsell Summary ───────────────────────────────────────────
     function UpsellSummaryCard({ currentArr, newArr, offerName, onConfirm, lang = 'fr' }) {
       const t = TR[lang];
@@ -2012,7 +2167,31 @@
       const [customDiscount,    setCustomDiscount]    = useState(0);
       const [customDiscountFac, setCustomDiscountFac] = useState(0);
       const [upfrontTimes,      setUpfrontTimes]      = useState(1);
+      const [decoyOffers,       setDecoyOffers]       = useState([]);
       const upsellCardRef = useRef(null);
+
+      const addDecoyOffer = (offer, discount) =>
+        setDecoyOffers(prev => [...prev, { id: `${offer}-${Date.now()}`, offer, discount, recommended: prev.length === 0 }]);
+      const removeDecoyOffer = id =>
+        setDecoyOffers(prev => {
+          const next = prev.filter(o => o.id !== id);
+          if (next.length > 0 && !next.some(o => o.recommended)) next[0] = { ...next[0], recommended: true };
+          return next;
+        });
+      const moveDecoyOffer = (id, dir) =>
+        setDecoyOffers(prev => {
+          const idx = prev.findIndex(o => o.id === id);
+          if (idx < 0) return prev;
+          const swap = idx + dir;
+          if (swap < 0 || swap >= prev.length) return prev;
+          const next = [...prev];
+          [next[idx], next[swap]] = [next[swap], next[idx]];
+          return next;
+        });
+      const setDecoyRecommended = id =>
+        setDecoyOffers(prev => prev.map(o => ({ ...o, recommended: o.id === id })));
+      const updateDecoyDiscount = (id, v) =>
+        setDecoyOffers(prev => prev.map(o => o.id === id ? { ...o, discount: v } : o));
       const [amMapping,         setAmMapping]         = useState({});
 
       useEffect(() => {
@@ -2029,6 +2208,7 @@
         setSubmitted(false); setSelectedIdx(null); setSelectedPayment(null);
         setDiscounts({}); setDiscountsFacilite({}); setStep(0);
         setCustomScenario(null); setCustomDiscount(0); setCustomDiscountFac(0); setUpfrontTimes(1);
+        setDecoyOffers([]);
       };
 
       const onChange = (key, val) => {
@@ -2164,7 +2344,7 @@
               {selectedScenario && selectedPayment && (
                 <Card style={{ padding: 40 }}>
                   <OutputSection form={form} scenario={selectedScenario} discountValue={selectedDiscount}
-                    discountFacilite={selectedDiscountFac} payment={selectedPayment} prorata={prorata} demoMode={true} amName={amMapping[form.ae] || form.ae} lang={lang} zone={effectiveZone} />
+                    discountFacilite={selectedDiscountFac} payment={selectedPayment} prorata={prorata} demoMode={true} amName={amMapping[form.ae] || form.ae} lang={lang} zone={effectiveZone} decoyOffers={decoyOffers} />
                 </Card>
               )}
             </div>
@@ -2217,6 +2397,15 @@
                   </div>
                 </Card>
                 <CustomScenarioCard zone={effectiveZone} currentOffer={form.offer} isSelected={selectedIdx === -1} onSelect={handleSelectCustom} lang={lang} />
+                <DecoyBuilderSection
+                  decoyOffers={decoyOffers}
+                  zone={effectiveZone}
+                  onAdd={addDecoyOffer}
+                  onRemove={removeDecoyOffer}
+                  onMove={moveDecoyOffer}
+                  onSetRecommended={setDecoyRecommended}
+                  onUpdateDiscount={updateDecoyDiscount}
+                />
                 {selectedScenario && (
                   <div ref={upsellCardRef}>
                     <UpsellSummaryCard
@@ -2258,7 +2447,7 @@
                 <Card style={{ padding: 28 }}>
                   <OutputSection form={form} scenario={selectedScenario} discountValue={selectedDiscount}
                     discountFacilite={selectedDiscountFac} payment={selectedPayment} prorata={prorata} demoMode={false} upfrontTimes={upfrontTimes}
-                    amName={amMapping[form.ae] || form.ae} lang={lang} zone={effectiveZone} />
+                    amName={amMapping[form.ae] || form.ae} lang={lang} zone={effectiveZone} decoyOffers={decoyOffers} />
                 </Card>
                 <SaveCaseBlock form={form} scenario={selectedScenario} discountValue={selectedDiscount} payment={selectedPayment} />
                 </>
