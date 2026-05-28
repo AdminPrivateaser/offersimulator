@@ -190,7 +190,7 @@
         renewalDate: 'Fecha de renovación',
         engagement: 'Engagement',
         subStart: 'Inicio de la nueva suscripción',
-        atRenewal: 'En el momento de la renovación',
+        atRenewal: 'En el momento del renewal',
         earlyRenewal: 'Early renewal — A una fecha concreta',
         optional: 'opcional',
         submit: 'Ver las recomendaciones →',
@@ -1478,41 +1478,79 @@
         });
       })();
 
-      const amtStr = v => v.net === 0 ? `0 € HT ✓ couvert par votre crédit` : `${fmtDec(v.net)} HT`;
+      const amtStr = v => v.net === 0
+  ? (lang === 'es' ? `0 € IVA excl. ✓ cubierto por su crédito` : `0 € HT ✓ couvert par votre crédit`)
+  : `${fmtDec(v.net)} ${lang === 'es' ? 'IVA excl.' : 'HT'}`;
       const installLine = (v, idx, total) => {
-        const label = total === 1 ? `Paiement unique le ${payDate(0)}` : `Échéance ${idx+1}/${total} le ${payDate(idx)}`;
+        const label = lang === 'es'
+          ? (total === 1 ? `Pago único el ${payDate(0)}` : `Pago ${idx+1}/${total} el ${payDate(idx)}`)
+          : (total === 1 ? `Paiement unique le ${payDate(0)}` : `Échéance ${idx+1}/${total} le ${payDate(idx)}`);
         return `      • ${label} : ${amtStr(v)}`;
       };
 
       const m3net = faciliteSeqE[2]?.net ?? mRestRawE;
       const m3to12Equal = faciliteSeqE.slice(2).every(m => Math.abs(m.net - m3net) < 0.01);
       const faciliteM3lines = m3to12Equal
-        ? [`      • Puis 10 mensualités de ${fmtDec(m3net)} HT (6%) à partir du ${payDate(2)}`]
-        : faciliteSeqE.slice(2).map((m, i) => `      • Mois ${i+3} (6%) le ${payDate(i+2)} : ${amtStr(m)}`);
+        ? lang === 'es'
+          ? [`      • Luego 10 mensualidades de ${fmtDec(m3net)} IVA excl. (6%) a partir del ${payDate(2)}`]
+          : [`      • Puis 10 mensualités de ${fmtDec(m3net)} HT (6%) à partir du ${payDate(2)}`]
+        : lang === 'es'
+          ? faciliteSeqE.slice(2).map((m, i) => `      • Mes ${i+3} (6%) el ${payDate(i+2)} : ${amtStr(m)}`)
+          : faciliteSeqE.slice(2).map((m, i) => `      • Mois ${i+3} (6%) le ${payDate(i+2)} : ${amtStr(m)}`);
 
       const chosenOfferStr = payment === 'facilite'
-        ? (discountFacilite > 0
-            ? `${OFFER_NAMES[offer]} paiement facilité — ${fmtDec(faciliteNet)} HT, remise ${discountFacilite}%`
-            : `${OFFER_NAMES[offer]} paiement facilité — ${fmt(facilite)} HT, sans remise`)
-        : (discountValue > 0
-            ? `${OFFER_NAMES[offer]} paiement ${upfrontTimes > 1 ? `en ${upfrontTimes} fois` : 'annuel'} — ${fmtDec(negotiated)} HT, remise ${discountValue}%`
-            : `${OFFER_NAMES[offer]} paiement ${upfrontTimes > 1 ? `en ${upfrontTimes} fois` : 'annuel'} — ${fmt(catalog)} HT, sans remise`);
+        ? lang === 'es'
+          ? (discountFacilite > 0
+              ? `${OFFER_NAMES[offer]} pago fraccionado — ${fmtDec(faciliteNet)} IVA excl., descuento ${discountFacilite}%`
+              : `${OFFER_NAMES[offer]} pago fraccionado — ${fmt(facilite)} IVA excl., sin descuento`)
+          : (discountFacilite > 0
+              ? `${OFFER_NAMES[offer]} paiement facilité — ${fmtDec(faciliteNet)} HT, remise ${discountFacilite}%`
+              : `${OFFER_NAMES[offer]} paiement facilité — ${fmt(facilite)} HT, sans remise`)
+        : lang === 'es'
+          ? (discountValue > 0
+              ? `${OFFER_NAMES[offer]} pago ${upfrontTimes > 1 ? `en ${upfrontTimes} veces` : 'anual'} — ${fmtDec(negotiated)} IVA excl., descuento ${discountValue}%`
+              : `${OFFER_NAMES[offer]} pago ${upfrontTimes > 1 ? `en ${upfrontTimes} veces` : 'anual'} — ${fmt(catalog)} IVA excl., sin descuento`)
+          : (discountValue > 0
+              ? `${OFFER_NAMES[offer]} paiement ${upfrontTimes > 1 ? `en ${upfrontTimes} fois` : 'annuel'} — ${fmtDec(negotiated)} HT, remise ${discountValue}%`
+              : `${OFFER_NAMES[offer]} paiement ${upfrontTimes > 1 ? `en ${upfrontTimes} fois` : 'annuel'} — ${fmt(catalog)} HT, sans remise`);
 
       const emailPaymentBlock = payment === 'facilite' ? [
-        `🗓️ Paiement facilité en 12 fois`,
-        ...(credit > 0 ? [`   (crédit prorata de ${fmtDec(credit)} déduit)`] : []),
+        lang === 'es' ? '🗓️ Pago fraccionado en 12 veces' : '🗓️ Paiement facilité en 12 fois',
+        ...(credit > 0 ? [lang === 'es' ? `   (crédito prorrata de ${fmtDec(credit)} deducido)` : `   (crédit prorata de ${fmtDec(credit)} déduit)`] : []),
         ``,
-        `      • ${faciliteSeqE[0].label} le ${payDate(0)} : ${amtStr(faciliteSeqE[0])}`,
-        `      • ${faciliteSeqE[1].label} le ${payDate(1)} : ${amtStr(faciliteSeqE[1])}`,
+        `      • ${lang === 'es' ? '1er pago (20%)' : faciliteSeqE[0].label} ${lang === 'es' ? 'el' : 'le'} ${payDate(0)} : ${amtStr(faciliteSeqE[0])}`,
+        `      • ${lang === 'es' ? '2º pago (20%)' : faciliteSeqE[1].label} ${lang === 'es' ? 'el' : 'le'} ${payDate(1)} : ${amtStr(faciliteSeqE[1])}`,
         ...faciliteM3lines,
       ] : [
-        `💳 Paiement ${upfrontTimes === 1 ? 'annuel en 1 fois' : `en ${upfrontTimes} fois`}`,
-        ...(credit > 0 ? [`   (crédit prorata de ${fmtDec(credit)} déduit)`] : []),
+        lang === 'es' ? (upfrontTimes === 1 ? '💳 Pago anual en 1 vez' : `💳 Pago en ${upfrontTimes} veces`) : `💳 Paiement ${upfrontTimes === 1 ? 'annuel en 1 fois' : `en ${upfrontTimes} fois`}`,
+        ...(credit > 0 ? [lang === 'es' ? `   (crédito prorrata de ${fmtDec(credit)} deducido)` : `   (crédit prorata de ${fmtDec(credit)} déduit)`] : []),
         ``,
         ...upfrontSeq(upfrontTimes).map((v, i) => installLine(v, i, upfrontTimes)),
       ];
 
-      const email = [
+      const email = lang === 'es' ? [
+        `Asunto: Propuesta de renovación — ${form.account}`,
+        ``,
+        `Hola,`,
+        ``,
+        `Me pongo en contacto con usted para presentarle nuestra propuesta de renovación Joy.`,
+        ``,
+        `Suscripción actual: ${OFFER_NAMES[form.offer]} - ${currentPriceStr}, renovación prevista el ${fmtDateLong(form.nextBilling)}.`,
+        ``,
+        `Nueva oferta: ${chosenOfferStr}.`,
+        ...(payStart ? [`Esta nueva oferta comenzaría a partir del ${fmtDateLong(payStart)} por un período de un año.`] : []),
+        ``,
+        `${'━'.repeat(45)}`,
+        ...emailPaymentBlock,
+        `${'━'.repeat(45)}`,
+        ``,
+        `Esta propuesta es válida hasta su vencimiento${form.nextBilling ? ` del ${fmtDateLong(form.nextBilling)}` : ''}.`,
+        ``,
+        `No dude en contactarme para cualquier pregunta.`,
+        ``,
+        `Atentamente,`,
+        ...(amName ? [`${amName}`] : []),
+      ].join('\n') : [
         `Objet : Proposition de renouvellement — ${form.account}`,
         ``,
         `Bonjour,`,
@@ -1537,7 +1575,18 @@
       ].join('\n');
 
       // ── Templates email Notion ────────────────────────────────────────────────
-      const blocEcheancier = [
+      const blocEcheancier = lang === 'es' ? [
+        `Suscripción actual: ${OFFER_NAMES[form.offer]} - ${currentPriceStr}, renovación prevista el ${fmtDateLong(form.nextBilling)}.`,
+        ``,
+        `Nueva oferta: ${chosenOfferStr}.`,
+        ...(payStart ? [`Esta nueva oferta comenzaría a partir del ${fmtDateLong(payStart)} por un período de un año.`] : []),
+        ``,
+        `${'━'.repeat(45)}`,
+        ...emailPaymentBlock,
+        `${'━'.repeat(45)}`,
+        ``,
+        `Esta propuesta es válida hasta su vencimiento${form.nextBilling ? ` del ${fmtDateLong(form.nextBilling)}` : ''}.`,
+      ].join('\n') : [
         `Abonnement actuel : ${OFFER_NAMES[form.offer]} - ${currentPriceStr}, renouvellement prévu le ${fmtDateLong(form.nextBilling)}.`,
         ``,
         `Nouvelle offre : ${chosenOfferStr}.`,
@@ -1569,12 +1618,17 @@
         if (!decoyMode || decoyItems.length < 2) return null;
         const sep = '━'.repeat(45);
 
-        // Génère les lignes d'échéancier pour n'importe quel prix
         const payLines = (price) => {
           if (payment === 'facilite') {
             const m1 = price * 0.20;
             const mRest = price * 0.06;
-            return [
+            return lang === 'es' ? [
+              `🗓️ Pago fraccionado en 12 veces`,
+              ``,
+              `      • 1er pago (20%) el ${payDate(0)} : ${fmtDec(m1)} IVA excl.`,
+              `      • 2º pago (20%) el ${payDate(1)} : ${fmtDec(m1)} IVA excl.`,
+              `      • Luego 10 mensualidades de ${fmtDec(mRest)} IVA excl. (6%) a partir del ${payDate(2)}`,
+            ] : [
               `🗓️ Paiement facilité en 12 fois`,
               ``,
               `      • 1ère échéance (20%) le ${payDate(0)} : ${fmtDec(m1)} HT`,
@@ -1584,12 +1638,22 @@
           } else {
             const times = upfrontTimes || 1;
             const per = price / times;
-            if (times === 1) return [
+            if (times === 1) return lang === 'es' ? [
+              `💳 Pago anual en 1 vez`,
+              ``,
+              `      • Pago único el ${payDate(0)} : ${fmtDec(per)} IVA excl.`,
+            ] : [
               `💳 Paiement annuel en 1 fois`,
               ``,
               `      • Paiement unique le ${payDate(0)} : ${fmtDec(per)} HT`,
             ];
-            return [
+            return lang === 'es' ? [
+              `💳 Pago en ${times} veces`,
+              ``,
+              ...Array.from({ length: times }, (_, i) =>
+                `      • Pago ${i+1}/${times} el ${payDate(i)} : ${fmtDec(per)} IVA excl.`
+              ),
+            ] : [
               `💳 Paiement en ${times} fois`,
               ``,
               ...Array.from({ length: times }, (_, i) =>
@@ -1599,7 +1663,37 @@
           }
         };
 
-        const lines = [
+        const lines = lang === 'es' ? [
+          `Asunto: Propuesta de renovación — ${form.account}`,
+          ``,
+          `Hola,`,
+          ``,
+          tu
+            ? `Me pongo en contacto contigo para presentarte nuestras propuestas de renovación Joy.`
+            : `Me pongo en contacto con usted para presentarle nuestras propuestas de renovación Joy.`,
+          ``,
+          ...decoyItems.flatMap((item, idx) => {
+            const cat = PRICING[zone]?.upfront?.[item.scenario.offer] ?? 0;
+            const neg = cat * (1 - item.discount / 100);
+            const offerName = OFFER_NAMES[item.scenario.offer] || item.scenario.offer;
+            return [
+              sep,
+              `Oferta ${idx + 1} — ${offerName}`,
+              item.discount > 0
+                ? `Precio catálogo: ${fmt(cat)} IVA excl./año   →   Precio negociado: ${fmtDec(neg)} IVA excl./año (−${item.discount}%)`
+                : `Precio: ${fmt(cat)} IVA excl./año`,
+              ``,
+              ...payLines(neg),
+              ``,
+            ];
+          }),
+          sep,
+          ``,
+          tu ? `No dudes en contactarme para cualquier pregunta.` : `No dude en contactarme para cualquier pregunta.`,
+          ``,
+          tu ? `Hasta pronto,` : `Atentamente,`,
+          ...(amName ? [amName] : []),
+        ].join('\n') : [
           `Objet : Proposition de renouvellement — ${form.account}`,
           ``,
           `Bonjour,`,
