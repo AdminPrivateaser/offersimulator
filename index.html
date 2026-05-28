@@ -176,6 +176,8 @@
           reasonDiscount: 'discount dépasse le seuil autonome',
           autonomeLine: "✅ *Autonome* — dans les seuils, aucune validation requise.",
         },
+        catalogueActuelLabel: 'Catalogue souscription actuelle',
+        catalogueNewLabel: 'Catalogue nouvelle offre',
       },
       es: {
         clientAccount: 'Cuenta cliente',
@@ -300,6 +302,8 @@
           reasonDiscount: 'descuento supera el umbral autónomo',
           autonomeLine: "✅ *Autónomo* — dentro de los umbrales, sin validación requerida.",
         },
+        catalogueActuelLabel: 'Catálogo suscripción actual',
+        catalogueNewLabel: 'Catálogo nueva oferta',
       },
     };
 
@@ -329,6 +333,11 @@
       advanced: 3900,
       expert:   6900,
       e1:       10000, // inchangé, listé par cohérence
+    };
+
+    const PRICING_2025 = {
+      upfront:  { 'joy-only': 1490, basic: 2220, advanced: 3900, expert: 6900, e1: 10000, e2: 15000, e3: 20000 },
+      facilite: { 'joy-only': 1490, basic: 2664, advanced: 4641, expert: 7935, e1: 11500, e2: 17250, e3: 23000 },
     };
 
     const BANDS = [
@@ -651,6 +660,7 @@
       engagement: '', mrr: '', nextBilling: '',
       healthScore: '', band: null,
       subStart: '', subStartDate: '',
+      catalogueActuel: '2026', catalogueNew: '2026',
     };
 
     function ClientForm({ form, onChange, onSubmit, amMapping, lang }) {
@@ -737,6 +747,21 @@
                 </select>
               </div>
 
+              <div style={{ gridColumn: '1 / -1' }}>
+                <Label>{t.catalogueActuelLabel}</Label>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {['2025', '2026'].map(yr => (
+                    <button key={yr} onClick={() => onChange('catalogueActuel', yr)} style={{
+                      flex: 1, padding: '9px 0', borderRadius: 9, fontSize: 13, fontWeight: 700,
+                      border: `1.5px solid ${(form.catalogueActuel || '2026') === yr ? C.purple : C.border}`,
+                      background: (form.catalogueActuel || '2026') === yr ? C.purpleLight : 'white',
+                      color: (form.catalogueActuel || '2026') === yr ? C.purple : C.muted,
+                      cursor: 'pointer', transition: 'all .15s',
+                    }}>{yr}</button>
+                  ))}
+                </div>
+              </div>
+
               <div>
                 <Label>{t.currentARR} <span style={{ color: C.label, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>· {t.optional}</span></Label>
                 <div style={{ position: 'relative' }}>
@@ -759,6 +784,21 @@
               <div>
                 <Label>{t.renewalDate} <span style={{ color: C.label, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>· {t.optional}</span></Label>
                 <input style={inputStyle} type="date" value={form.nextBilling} onChange={e => onChange('nextBilling', e.target.value)} />
+              </div>
+
+              <div style={{ gridColumn: '1 / -1' }}>
+                <Label>{t.catalogueNewLabel}</Label>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {['2025', '2026'].map(yr => (
+                    <button key={yr} onClick={() => onChange('catalogueNew', yr)} style={{
+                      flex: 1, padding: '9px 0', borderRadius: 9, fontSize: 13, fontWeight: 700,
+                      border: `1.5px solid ${(form.catalogueNew || '2026') === yr ? C.purple : C.border}`,
+                      background: (form.catalogueNew || '2026') === yr ? C.purpleLight : 'white',
+                      color: (form.catalogueNew || '2026') === yr ? C.purple : C.muted,
+                      cursor: 'pointer', transition: 'all .15s',
+                    }}>{yr}</button>
+                  ))}
+                </div>
               </div>
 
               <div style={{ gridColumn: '1 / -1' }}>
@@ -863,10 +903,10 @@
     }
 
     // ─── Étape 2 : Scénarios ──────────────────────────────────────────────────
-    function ScenarioCard({ scenario, discount, onDiscountChange, zone, isSelected, onSelect, lang, decoyPosition = null }) {
+    function ScenarioCard({ scenario, discount, onDiscountChange, zone, pricing = null, isSelected, onSelect, lang, decoyPosition = null }) {
       const t = TR[lang];
       const { offer, label, recommended, rules, notRecommended, rank } = scenario;
-      const catalog    = PRICING[zone]?.upfront?.[offer] ?? 0;
+      const catalog    = (pricing ?? PRICING[zone])?.upfront?.[offer] ?? 0;
       const negotiated = catalog * (1 - discount / 100);
       const status     = discountStatus(discount, rules, notRecommended);
 
@@ -982,7 +1022,7 @@
     }
 
     // ─── Étape 3 : Paiement ───────────────────────────────────────────────────
-    function PaymentSection({ scenario, discountValue, onDiscountChange, discountFacilite, onDiscountFaciliteChange, zone, selectedPayment, onPaymentSelect, prorata, demoMode, startDate, upfrontTimes, setUpfrontTimes, lang }) {
+    function PaymentSection({ scenario, discountValue, onDiscountChange, discountFacilite, onDiscountFaciliteChange, zone, pricing = null, selectedPayment, onPaymentSelect, prorata, demoMode, startDate, upfrontTimes, setUpfrontTimes, lang }) {
       const t = TR[lang];
       const [demoShowInstallments, setDemoShowInstallments] = useState(false);
       const [demoShowFacilite,     setDemoShowFacilite]     = useState(false);
@@ -996,9 +1036,9 @@
 
       const { offer, rules, notRecommended } = scenario;
 
-      const catalog        = PRICING[zone]?.upfront?.[offer] ?? 0;
+      const catalog        = (pricing ?? PRICING[zone])?.upfront?.[offer] ?? 0;
       const negotiated     = catalog * (1 - discountValue / 100);
-      const facilite       = PRICING[zone]?.facilite?.[offer] ?? 0;
+      const facilite       = (pricing ?? PRICING[zone])?.facilite?.[offer] ?? 0;
       const faciliteNet    = facilite * (1 - discountFacilite / 100);
       const canFacilite    = true;
 
@@ -1409,9 +1449,11 @@
           .catch(() => { setRawTemplates({ tutoiement: null, vouvoiement: null }); setTplLoading(false); });
       }, [amName, form.negType]);
       const { offer, rules, notRecommended, label: scenarioLabel } = scenario;
-      const catalog        = PRICING[zone]?.upfront?.[offer] ?? 0;
+      const activePricing = (form.catalogueNew || '2026') === '2025' ? PRICING_2025 : PRICING[zone];
+      const currentActivePricing = (form.catalogueActuel || '2026') === '2025' ? PRICING_2025 : PRICING[zone];
+      const catalog        = activePricing?.upfront?.[offer] ?? 0;
       const negotiated     = catalog * (1 - discountValue / 100);
-      const facilite       = PRICING[zone]?.facilite?.[offer] ?? 0;
+      const facilite       = activePricing?.facilite?.[offer] ?? 0;
       const faciliteNet    = facilite * (1 - discountFacilite / 100);
       const credit         = prorata?.creditValue ?? 0;
       const upfrontFinal   = Math.max(0, negotiated - credit);
@@ -1445,7 +1487,7 @@
       };
 
       // ── Abonnement actuel ─────────────────────────────────────────────────────
-      const currentCatalogPrice = PRICING[zone]?.upfront?.[form.offer] ?? 0;
+      const currentCatalogPrice = currentActivePricing?.upfront?.[form.offer] ?? 0;
       const currentDiscountPct  = Number(form.currentDiscount) || 0;
       const currentAnnualPrice  = currentCatalogPrice * (1 - currentDiscountPct / 100);
       const currentPriceStr     = currentDiscountPct > 0
@@ -1673,7 +1715,7 @@
             : `Me pongo en contacto con usted para presentarle nuestras propuestas de renovación Joy.`,
           ``,
           ...decoyItems.flatMap((item, idx) => {
-            const cat = PRICING[zone]?.upfront?.[item.scenario.offer] ?? 0;
+            const cat = activePricing?.upfront?.[item.scenario.offer] ?? 0;
             const neg = cat * (1 - item.discount / 100);
             const offerName = OFFER_NAMES[item.scenario.offer] || item.scenario.offer;
             return [
@@ -1703,7 +1745,7 @@
             : `Je reviens vers vous pour vous présenter nos propositions de renouvellement Joy.`,
           ``,
           ...decoyItems.flatMap((item, idx) => {
-            const cat = PRICING[zone]?.upfront?.[item.scenario.offer] ?? 0;
+            const cat = activePricing?.upfront?.[item.scenario.offer] ?? 0;
             const neg = cat * (1 - item.discount / 100);
             const offerName = OFFER_NAMES[item.scenario.offer] || item.scenario.offer;
             return [
@@ -2033,13 +2075,13 @@
     }
 
     // ─── CustomScenarioCard ────────────────────────────────────────────────────
-    function CustomScenarioCard({ zone, currentOffer, isSelected, onSelect, lang = 'fr', decoyPosition = null, onDecoyToggle }) {
+    function CustomScenarioCard({ zone, currentOffer, pricing = null, isSelected, onSelect, lang = 'fr', decoyPosition = null, onDecoyToggle }) {
       const [open, setOpen] = useState(false);
       const [offer, setOffer] = useState('');
       const [discount, setDiscount] = useState(0);
 
       const offerOptions = OFFER_KEYS.filter(k => k !== 'joy-only');
-      const catalogPrice = PRICING[zone]?.upfront?.[offer] ?? 0;
+      const catalogPrice = (pricing ?? PRICING[zone])?.upfront?.[offer] ?? 0;
       const negotiated   = catalogPrice * (1 - discount / 100);
 
       const handleConfirm = () => {
@@ -2268,6 +2310,7 @@
       const amNameDisplay = amMapping[form.ae] || form.ae;
       const lang = SPANISH_AMS.some(n => amNameDisplay.toLowerCase().includes(n)) ? 'es' : 'fr';
       const effectiveZone = lang === 'es' ? 'B' : form.zone;
+      const activePricingNew = (form.catalogueNew || '2026') === '2025' ? PRICING_2025 : PRICING[effectiveZone];
 
       const hsNum    = parseInt(form.healthScore);
       const scenarios = useMemo(
@@ -2442,7 +2485,7 @@
                     {scenarios.map((s, i) => (
                       <ScenarioCard key={`${s.offer}-${i}`} scenario={s}
                         discount={discounts[i] ?? 0} onDiscountChange={val => handleDiscount(i, val)}
-                        zone={effectiveZone}
+                        zone={effectiveZone} pricing={activePricingNew}
                         isSelected={decoyMode ? decoyList.includes(i) : selectedIdx === i}
                         decoyPosition={decoyMode ? (decoyList.indexOf(i) >= 0 ? decoyList.indexOf(i) + 1 : null) : null}
                         onSelect={decoyMode ? () => handleDecoyToggle(i) : handleSelect}
@@ -2450,7 +2493,7 @@
                     ))}
                   </div>
                 </Card>
-                <CustomScenarioCard zone={effectiveZone} currentOffer={form.offer}
+                <CustomScenarioCard zone={effectiveZone} currentOffer={form.offer} pricing={activePricingNew}
                   isSelected={decoyMode ? decoyList.includes(-1) : selectedIdx === -1}
                   decoyPosition={decoyMode ? (decoyList.indexOf(-1) >= 0 ? decoyList.indexOf(-1) + 1 : null) : null}
                   onSelect={decoyMode ? (sc, disc) => { handleSelectCustom(sc, disc); handleDecoyToggle(-1); } : handleSelectCustom}
@@ -2463,7 +2506,7 @@
                         ? (customScenario ? { scenario: customScenario, discount: customDiscount } : null)
                         : (scenarios[key] ? { scenario: scenarios[key], discount: discounts[key] ?? 0 } : null);
                       if (!item) return null;
-                      const cat = PRICING[effectiveZone]?.upfront?.[item.scenario.offer] ?? 0;
+                      const cat = activePricingNew?.upfront?.[item.scenario.offer] ?? 0;
                       const neg = cat * (1 - item.discount / 100);
                       return (
                         <div key={key} style={{ marginBottom: 8 }}>
@@ -2486,7 +2529,7 @@
                   <div ref={upsellCardRef}>
                     <UpsellSummaryCard
                       currentArr={parseFloat(form.arr) > 0 ? parseFloat(form.arr) : parseFloat(form.mrr) * 12}
-                      newArr={(PRICING[effectiveZone]?.upfront?.[selectedScenario.offer] ?? 0) * (1 - selectedDiscount / 100)}
+                      newArr={(activePricingNew?.upfront?.[selectedScenario.offer] ?? 0) * (1 - selectedDiscount / 100)}
                       offerName={OFFER_NAMES[selectedScenario.offer] || selectedScenario.offer}
                       onConfirm={() => goTo(2)}
                       lang={lang}
@@ -2508,7 +2551,7 @@
                       else { setDiscounts(p => ({ ...p, [selectedIdx]: val })); setSelectedPayment(null); }
                     }}
                     discountFacilite={selectedDiscountFac} onDiscountFaciliteChange={handleDiscountFacilite}
-                    zone={effectiveZone} selectedPayment={selectedPayment} onPaymentSelect={handlePaymentSelect}
+                    zone={effectiveZone} pricing={activePricingNew} selectedPayment={selectedPayment} onPaymentSelect={handlePaymentSelect}
                     prorata={prorata} demoMode={false} startDate={payStart}
                     upfrontTimes={upfrontTimes} setUpfrontTimes={setUpfrontTimes} lang={lang}
                   />
