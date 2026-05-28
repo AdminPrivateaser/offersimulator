@@ -878,7 +878,7 @@
           transition: 'all .15s',
         }}>
           {decoyPosition !== null && (
-            <div style={{ position: 'absolute', top: 10, right: 10, width: 26, height: 26, borderRadius: '50%', background: '#7C3AED', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, zIndex: 2, boxShadow: '0 2px 8px #7C3AED44' }}>
+            <div onClick={() => onSelect(rank - 1)} style={{ position: 'absolute', top: 10, right: 10, width: 26, height: 26, borderRadius: '50%', background: '#7C3AED', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, zIndex: 2, boxShadow: '0 2px 8px #7C3AED44', cursor: 'pointer' }}>
               {decoyPosition}
             </div>
           )}
@@ -1568,6 +1568,37 @@
       const makeDecoyEmail = (tu) => {
         if (!decoyMode || decoyItems.length < 2) return null;
         const sep = '━'.repeat(45);
+
+        // Génère les lignes d'échéancier pour n'importe quel prix
+        const payLines = (price) => {
+          if (payment === 'facilite') {
+            const m1 = price * 0.20;
+            const mRest = price * 0.06;
+            return [
+              `🗓️ Paiement facilité en 12 fois`,
+              ``,
+              `      • 1ère échéance (20%) le ${payDate(0)} : ${fmtDec(m1)} HT`,
+              `      • 2ème échéance (20%) le ${payDate(1)} : ${fmtDec(m1)} HT`,
+              `      • Puis 10 mensualités de ${fmtDec(mRest)} HT (6%) à partir du ${payDate(2)}`,
+            ];
+          } else {
+            const times = upfrontTimes || 1;
+            const per = price / times;
+            if (times === 1) return [
+              `💳 Paiement annuel en 1 fois`,
+              ``,
+              `      • Paiement unique le ${payDate(0)} : ${fmtDec(per)} HT`,
+            ];
+            return [
+              `💳 Paiement en ${times} fois`,
+              ``,
+              ...Array.from({ length: times }, (_, i) =>
+                `      • Échéance ${i+1}/${times} le ${payDate(i)} : ${fmtDec(per)} HT`
+              ),
+            ];
+          }
+        };
+
         const lines = [
           `Objet : Proposition de renouvellement — ${form.account}`,
           ``,
@@ -1581,30 +1612,16 @@
             const cat = PRICING[zone]?.upfront?.[item.scenario.offer] ?? 0;
             const neg = cat * (1 - item.discount / 100);
             const offerName = OFFER_NAMES[item.scenario.offer] || item.scenario.offer;
-            if (idx === 0) {
-              // Première offre : détails complets
-              return [
-                sep,
-                `Offre 1 — ${offerName}`,
-                ``,
-                `Abonnement actuel : ${OFFER_NAMES[form.offer]} - ${currentPriceStr}, renouvellement prévu le ${fmtDateLong(form.nextBilling)}.`,
-                `Nouvelle offre : ${item.discount > 0 ? `${offerName} — ${fmtDec(neg)} HT/an (remise ${item.discount}%)` : `${offerName} — ${fmt(cat)} HT/an`}.`,
-                ...(payStart ? [`Cette nouvelle offre débuterait à partir du ${fmtDateLong(payStart)} pour un engagement d'un an.`] : []),
-                ``,
-                ...emailPaymentBlock,
-                ``,
-              ];
-            } else {
-              // Autres offres : prix seulement
-              return [
-                sep,
-                `Offre ${idx + 1} — ${offerName}`,
-                item.discount > 0
-                  ? `Prix catalogue : ${fmt(cat)} HT/an   →   Prix négocié : ${fmtDec(neg)} HT/an (−${item.discount}%)`
-                  : `Prix : ${fmt(cat)} HT/an`,
-                ``,
-              ];
-            }
+            return [
+              sep,
+              `Offre ${idx + 1} — ${offerName}`,
+              item.discount > 0
+                ? `Prix catalogue : ${fmt(cat)} HT/an   →   Prix négocié : ${fmtDec(neg)} HT/an (−${item.discount}%)`
+                : `Prix : ${fmt(cat)} HT/an`,
+              ``,
+              ...payLines(neg),
+              ``,
+            ];
           }),
           sep,
           ``,
@@ -2314,9 +2331,9 @@
                       cursor: 'pointer', transition: 'all .15s',
                     }}>
                       <span>{decoyMode ? '🎭' : '🎭'}</span>
-                      {decoyMode
-                        ? (decoyList.length >= 2 ? `Decoy — ${decoyList.length} offres ✓` : 'Decoy actif — cliquez les offres')
-                        : 'Sélectionner plusieurs offres'}
+                      {decoyList.length >= 2 && decoyMode
+                        ? `Sélection de plusieurs offres — ${decoyList.length} offres ✓`
+                        : 'Sélection de plusieurs offres'}
                     </button>
                   </div>
                   <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
