@@ -2362,7 +2362,33 @@
                   onSelect={decoyMode ? (sc, disc) => { handleSelectCustom(sc, disc); handleDecoyToggle(-1); } : handleSelectCustom}
                   onDecoyToggle={decoyMode ? () => handleDecoyToggle(-1) : undefined}
                   lang={lang} />
-                {selectedScenario && (
+                {decoyMode && decoyList.length >= 1 ? (
+                  <div ref={upsellCardRef}>
+                    {decoyList.map((key, idx) => {
+                      const item = key === -1
+                        ? (customScenario ? { scenario: customScenario, discount: customDiscount } : null)
+                        : (scenarios[key] ? { scenario: scenarios[key], discount: discounts[key] ?? 0 } : null);
+                      if (!item) return null;
+                      const cat = PRICING[effectiveZone]?.upfront?.[item.scenario.offer] ?? 0;
+                      const neg = cat * (1 - item.discount / 100);
+                      return (
+                        <div key={key} style={{ marginBottom: 8 }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: '#7C3AED', marginBottom: 4, paddingLeft: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#7C3AED', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 900 }}>{idx + 1}</span>
+                            Offre {idx + 1}
+                          </div>
+                          <UpsellSummaryCard
+                            currentArr={parseFloat(form.arr) > 0 ? parseFloat(form.arr) : parseFloat(form.mrr) * 12}
+                            newArr={neg}
+                            offerName={OFFER_NAMES[item.scenario.offer] || item.scenario.offer}
+                            onConfirm={() => goTo(2)}
+                            lang={lang}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : selectedScenario && (
                   <div ref={upsellCardRef}>
                     <UpsellSummaryCard
                       currentArr={parseFloat(form.arr) > 0 ? parseFloat(form.arr) : parseFloat(form.mrr) * 12}
