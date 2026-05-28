@@ -1939,7 +1939,7 @@
     }
 
     // ─── CustomScenarioCard ────────────────────────────────────────────────────
-    function CustomScenarioCard({ zone, currentOffer, isSelected, onSelect, lang = 'fr', decoyPosition = null }) {
+    function CustomScenarioCard({ zone, currentOffer, isSelected, onSelect, lang = 'fr', decoyPosition = null, onDecoyToggle }) {
       const [open, setOpen] = useState(false);
       const [offer, setOffer] = useState('');
       const [discount, setDiscount] = useState(0);
@@ -1961,7 +1961,7 @@
       return (
         <div style={{ background: 'white', border: `1.5px dashed ${isSelected ? C.purple : C.border}`, borderRadius: 16, padding: '16px 20px', marginTop: 4, position: 'relative' }}>
           {decoyPosition !== null && (
-            <div style={{ position: 'absolute', top: 10, right: 10, width: 26, height: 26, borderRadius: '50%', background: '#7C3AED', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, zIndex: 2, boxShadow: '0 2px 8px #7C3AED44' }}>
+            <div onClick={onDecoyToggle} style={{ position: 'absolute', top: 10, right: 10, width: 26, height: 26, borderRadius: '50%', background: '#7C3AED', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, zIndex: 2, boxShadow: '0 2px 8px #7C3AED44', cursor: 'pointer' }}>
               {decoyPosition}
             </div>
           )}
@@ -2360,6 +2360,7 @@
                   isSelected={decoyMode ? decoyList.includes(-1) : selectedIdx === -1}
                   decoyPosition={decoyMode ? (decoyList.indexOf(-1) >= 0 ? decoyList.indexOf(-1) + 1 : null) : null}
                   onSelect={decoyMode ? (sc, disc) => { handleSelectCustom(sc, disc); handleDecoyToggle(-1); } : handleSelectCustom}
+                  onDecoyToggle={decoyMode ? () => handleDecoyToggle(-1) : undefined}
                   lang={lang} />
                 {selectedScenario && (
                   <div ref={upsellCardRef}>
