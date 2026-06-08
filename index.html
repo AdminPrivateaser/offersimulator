@@ -179,6 +179,7 @@
         catalogueActuelLabel: 'Catalogue souscription actuelle',
         catalogueNewLabel: 'Catalogue nouvelle offre',
         slackBtn: { idle: '📢 Envoyer CR Slack', sending: '…', sent: '✓ Envoyé !', error: '❌ Erreur' },
+        unchurnSub: 'Saisie libre — sans algorithme de recommandation',
       },
       es: {
         clientAccount: 'Cuenta cliente',
@@ -314,6 +315,7 @@
           'Offre personnalisée':         'Oferta personalizada',
         },
         slackBtn: { idle: '📢 Enviar CR Slack', sending: '…', sent: '✓ ¡Enviado!', error: '❌ Error' },
+        unchurnSub: 'Entrada libre — sin algoritmo de recomendación',
       },
     };
 
@@ -673,11 +675,12 @@
       catalogueActuel: '2026', catalogueNew: '2026',
     };
 
-    function ClientForm({ form, onChange, onSubmit, amMapping, lang }) {
+    function ClientForm({ form, onChange, onSubmit, onUnchurn, amMapping, lang }) {
       const t = TR[lang];
       const hsNum    = parseInt(form.healthScore);
       const hsOk     = !isNaN(hsNum) && hsNum >= 0;
       const canSubmit = form.account && form.ae && form.offer && form.mrr && hsOk && form.band;
+      const canUnchurn = !!(form.account && form.ae);
 
       return (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -906,6 +909,15 @@
               letterSpacing: '.02em',
             }}>
               {canSubmit ? t.submit : t.submitDisabled}
+            </button>
+            <button onClick={onUnchurn} disabled={!canUnchurn} style={{
+              width: '100%', marginTop: 8, padding: '10px 0', borderRadius: 14, fontSize: 13, fontWeight: 700,
+              border: `1.5px solid ${canUnchurn ? C.coral : C.border}`,
+              background: canUnchurn ? C.coralLight : 'white',
+              color: canUnchurn ? C.coral : C.label,
+              cursor: canUnchurn ? 'pointer' : 'not-allowed', transition: 'all .15s',
+            }}>
+              🔴 Unchurn mode
             </button>
           </div>
         </div>
@@ -2085,8 +2097,8 @@
     }
 
     // ─── CustomScenarioCard ────────────────────────────────────────────────────
-    function CustomScenarioCard({ zone, currentOffer, pricing = null, isSelected, onSelect, lang = 'fr', decoyPosition = null, onDecoyToggle }) {
-      const [open, setOpen] = useState(false);
+    function CustomScenarioCard({ zone, currentOffer, pricing = null, isSelected, onSelect, lang = 'fr', decoyPosition = null, onDecoyToggle, defaultOpen = false }) {
+      const [open, setOpen] = useState(defaultOpen);
       const [offer, setOffer] = useState('');
       const [discount, setDiscount] = useState(0);
 
@@ -2240,8 +2252,9 @@
       const [customDiscount,    setCustomDiscount]    = useState(0);
       const [customDiscountFac, setCustomDiscountFac] = useState(0);
       const [upfrontTimes,      setUpfrontTimes]      = useState(1);
-      const [decoyMode,   setDecoyMode]   = useState(false);
-      const [decoyList,   setDecoyList]   = useState([]); // tableau de clés : index scénario (0,1,2...) ou -1 pour custom
+      const [decoyMode,    setDecoyMode]    = useState(false);
+      const [decoyList,    setDecoyList]    = useState([]); // tableau de clés : index scénario (0,1,2...) ou -1 pour custom
+      const [unchurnMode,  setUnchurnMode]  = useState(false);
       const upsellCardRef = useRef(null);
 
       const toggleDecoyMode = () => {
@@ -2282,6 +2295,7 @@
 
       const goTo = (target) => {
         setSlideDir(target > step ? 'fwd' : 'back');
+        if (target === 0) setUnchurnMode(false);
         setStep(target);
       };
 
@@ -2290,6 +2304,7 @@
         setDiscounts({}); setDiscountsFacilite({}); setStep(0);
         setCustomScenario(null); setCustomDiscount(0); setCustomDiscountFac(0); setUpfrontTimes(1);
         setDecoyMode(false); setDecoyList([]);
+        setUnchurnMode(false);
       };
 
       const onChange = (key, val) => {
@@ -2314,6 +2329,16 @@
         setSelectedIdx(null); setSelectedPayment(null);
         setDiscounts({}); setDiscountsFacilite({});
         setSubmitted(true);
+        setUnchurnMode(false);
+        goTo(1);
+      };
+
+      const onUnchurn = () => {
+        setSelectedIdx(null); setSelectedPayment(null);
+        setCustomScenario(null); setCustomDiscount(0); setCustomDiscountFac(0);
+        setDiscounts({}); setDiscountsFacilite({});
+        setSubmitted(true);
+        setUnchurnMode(true);
         goTo(1);
       };
 
@@ -2454,12 +2479,34 @@
                       <span style={{ fontSize: 13, fontWeight: 600, color: C.purple }}>Données pré-remplies depuis Salesforce — vérifiez et complétez si besoin.</span>
                     </div>
                   )}
-                  <ClientForm form={form} onChange={onChange} onSubmit={onSubmit} amMapping={amMapping} lang={lang} />
+                  <ClientForm form={form} onChange={onChange} onSubmit={onSubmit} onUnchurn={onUnchurn} amMapping={amMapping} lang={lang} />
+                </>
+              )}
+
+              {/* Étape 1 — Unchurn mode */}
+              {step === 1 && unchurnMode && (
+                <>
+                <BackButton to={0} label={TR[lang].editProfile} />
+                <Card style={{ padding: 28 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
+                    <SectionIcon color={C.coral}>🔴</SectionIcon>
+                    <div>
+                      <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>Unchurn mode</p>
+                      <p style={{ fontSize: 12, color: C.muted }}>{TR[lang].unchurnSub}</p>
+                    </div>
+                  </div>
+                  <CustomScenarioCard
+                    zone={effectiveZone} currentOffer={form.offer} pricing={activePricingNew}
+                    isSelected={selectedIdx === -1}
+                    defaultOpen={true}
+                    onSelect={(sc, disc) => { handleSelectCustom(sc, disc); goTo(2); }}
+                    lang={lang} />
+                </Card>
                 </>
               )}
 
               {/* Étape 1 — Recommandations */}
-              {step === 1 && scenarios.length > 0 && (
+              {step === 1 && !unchurnMode && scenarios.length > 0 && (
                 <>
                 <BackButton to={0} label={TR[lang].editProfile} />
                 <Card style={{ padding: 28 }}>
