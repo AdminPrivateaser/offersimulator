@@ -31,7 +31,23 @@
   </style>
 </head>
 <body class="min-h-screen">
-  <div id="root"></div>
+  <div id="root"><div style="padding:40px;font-family:monospace;font-size:13px;color:#374151">Chargement…</div></div>
+
+  <script>
+    window.onerror = function(msg, src, line, col, err) {
+      document.getElementById('root').innerHTML =
+        '<div style="padding:32px;font-family:monospace;font-size:13px;color:#B91C1C;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:12px;margin:24px">' +
+        '<b>Erreur JavaScript :</b><br>' + msg +
+        '<br><small>' + (src||'') + ' L' + line + ':' + col + '</small>' +
+        (err && err.stack ? '<pre style="margin-top:8px;white-space:pre-wrap;font-size:11px">' + err.stack.substring(0,800) + '</pre>' : '') +
+        '</div>';
+    };
+    window.addEventListener('unhandledrejection', function(e) {
+      document.getElementById('root').innerHTML =
+        '<div style="padding:32px;font-family:monospace;font-size:13px;color:#B45309;background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;margin:24px">' +
+        '<b>Promise rejetée :</b><br>' + (e.reason && e.reason.message ? e.reason.message : String(e.reason)) + '</div>';
+    });
+  </script>
 
   <script type="text/babel">
     const { useState, useMemo, useEffect, useRef } = React;
@@ -2636,7 +2652,26 @@
       );
     }
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    class ErrorBoundary extends React.Component {
+      constructor(props) { super(props); this.state = { error: null }; }
+      static getDerivedStateFromError(err) { return { error: err }; }
+      componentDidCatch(err, info) { console.error('React crash:', err, info); }
+      render() {
+        if (this.state.error) {
+          const e = this.state.error;
+          return (
+            <div style={{ padding: 32, fontFamily: 'monospace', fontSize: 13, color: '#B91C1C', background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: 12, margin: 24 }}>
+              <b>Erreur React :</b><br />
+              {e.message}<br />
+              <pre style={{ marginTop: 8, whiteSpace: 'pre-wrap', fontSize: 11 }}>{e.stack && e.stack.substring(0, 800)}</pre>
+            </div>
+          );
+        }
+        return this.props.children;
+      }
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<ErrorBoundary><App /></ErrorBoundary>);
   </script>
 </body>
 </html>
