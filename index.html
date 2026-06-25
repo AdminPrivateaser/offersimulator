@@ -196,6 +196,8 @@
         catalogueNewLabel: 'Catalogue nouvelle offre',
         slackBtn: { idle: '📢 Envoyer CR Slack', sending: '…', sent: '✓ Envoyé !', error: '❌ Erreur' },
         unchurnSub: 'Saisie libre — sans algorithme de recommandation',
+        cityLabel: 'Ville',
+        offerCapNote: (name) => `⚠️ Offres plafonnées à ${name} — zone B/C`,
       },
       es: {
         clientAccount: 'Cuenta cliente',
@@ -322,6 +324,8 @@
         },
         catalogueActuelLabel: 'Catálogo suscripción actual',
         catalogueNewLabel: 'Catálogo nueva oferta',
+        cityLabel: 'Ciudad',
+        offerCapNote: (name) => `⚠️ Ofertas limitadas a ${name} — zona B/C`,
         scenarioLabels: {
           'Offre inférieure':            'Oferta inferior',
           'Offre deux fois inférieure':  'Oferta dos niveles inferior',
@@ -456,7 +460,21 @@
       return OFFER_KEYS[next];
     }
 
-    function computeScenarios(hs, band, currentOffer) {
+    const BIG_CITIES_BC = [
+      'paris', 'madrid', 'barcelona', 'lyon', 'lille', 'toulouse', 'bordeaux',
+      'marseille', 'bruxelles', 'brussels', 'nantes', 'montpellier',
+      'boulogne-billancourt', 'boulogne billancourt',
+    ];
+
+    function getOfferCap(zone, city) {
+      if (zone === 'A') return null;
+      const c = (city || '').toLowerCase().trim();
+      if (!c) return null;
+      const isBig = BIG_CITIES_BC.some(b => c === b || c.includes(b));
+      return isBig ? 'e1' : 'expert';
+    }
+
+    function computeScenarios(hs, band, currentOffer, maxOffer = null) {
       const raw = [];
       if (hs <= 70) {
         const rules = { ok: 30, validate: 60 };
@@ -486,8 +504,10 @@
           raw.push({ offer: offerAt(currentOffer, -1), label: 'Offre inférieure',           rules: null, notRecommended: true });
         }
       }
+      const maxIdx = maxOffer !== null ? OFFER_KEYS.indexOf(maxOffer) : Infinity;
       return raw
         .filter(s => s.offer !== null && s.offer !== 'joy-only')
+        .filter(s => maxIdx === Infinity || OFFER_KEYS.indexOf(s.offer) <= maxIdx)
         .map((s, i) => ({ ...s, rank: i + 1, recommended: i === 0, notRecommended: !!s.notRecommended }));
     }
 
@@ -683,7 +703,7 @@
     ];
 
     const EMPTY_FORM = {
-      account: '', ae: '', oppId: '', negType: '', zone: 'A', offer: 'advanced',
+      account: '', ae: '', oppId: '', negType: '', zone: 'A', offer: 'advanced', city: '',
       arr: '', currentDiscount: 0,
       engagement: '', mrr: '', nextBilling: '',
       healthScore: '', band: null,
@@ -768,6 +788,17 @@
                 </div>
               </div>
               )}
+
+              <div>
+                <Label>{t.cityLabel}</Label>
+                <input
+                  type="text"
+                  style={{ ...inputStyle }}
+                  value={form.city}
+                  onChange={e => onChange('city', e.target.value)}
+                  placeholder="ex: Paris, Lyon…"
+                />
+              </div>
 
               <div>
                 <Label>{t.currentOffer}</Label>
@@ -2109,6 +2140,7 @@
         subStartDate:    get('subStartDate', EMPTY_FORM.subStartDate),
         healthScore,
         band,
+        city: get('city', EMPTY_FORM.city),
       };
     }
 
@@ -2338,7 +2370,7 @@
           }
           return next;
         });
-        if (['offer', 'healthScore', 'band', 'zone'].includes(key)) resetDownstream();
+        if (['offer', 'healthScore', 'band', 'zone', 'city'].includes(key)) resetDownstream();
       };
 
       const onSubmit = () => {
@@ -2364,9 +2396,10 @@
       const activePricingNew = (form.catalogueNew || '2026') === '2025' ? PRICING_2025 : PRICING[effectiveZone];
 
       const hsNum    = parseInt(form.healthScore);
+      const offerCap = getOfferCap(effectiveZone, form.city);
       const scenarios = useMemo(
-        () => submitted ? computeScenarios(hsNum, form.band, form.offer) : [],
-        [submitted, hsNum, form.band, form.offer]
+        () => submitted ? computeScenarios(hsNum, form.band, form.offer, offerCap) : [],
+        [submitted, hsNum, form.band, form.offer, offerCap]
       );
       const prorata = useMemo(
         () => computeProrata(form, TR[lang].dateLocale),
@@ -2531,6 +2564,11 @@
                     <div style={{ flex: 1 }}>
                       <p style={{ fontWeight: 700, fontSize: 15, color: C.text }}>{TR[lang].offerRecommendations}</p>
                       <p style={{ fontSize: 12, color: C.muted }}>{TR[lang].offerRecommendationsSub}</p>
+                      {offerCap && (
+                        <p style={{ fontSize: 11, marginTop: 4, color: '#92400E', background: '#FFFBEB', padding: '2px 8px', borderRadius: 6, border: '1px solid #FDE68A', display: 'inline-block' }}>
+                          {TR[lang].offerCapNote(OFFER_NAMES[offerCap])}
+                        </p>
+                      )}
                     </div>
                     <button onClick={toggleDecoyMode} style={{
                       display: 'flex', alignItems: 'center', gap: 6,
