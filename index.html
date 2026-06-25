@@ -2140,7 +2140,7 @@
         subStartDate:    get('subStartDate', EMPTY_FORM.subStartDate),
         healthScore,
         band,
-        city: get('city', EMPTY_FORM.city),
+        city: (() => { const v = get('city', ''); return v && !v.startsWith('!') ? v : EMPTY_FORM.city; })(),
       };
     }
 
